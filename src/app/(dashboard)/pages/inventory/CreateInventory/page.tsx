@@ -271,4 +271,12 @@ const CreateInventory = ({ onItemCreated }: { onItemCreated?: (item: InventoryFo
   );
 };
 
-export default CreateInventory;
+// Page component that wraps the CreateInventory
+export default function CreateInventoryPage() {
+  const handleItemCreated = (item: InventoryForm) => {
+    console.log('Inventory item created:', item);
+    // Handle item creation logic here
+  };
+
+  return <CreateInventory onItemCreated={handleItemCreated} />;
+}
