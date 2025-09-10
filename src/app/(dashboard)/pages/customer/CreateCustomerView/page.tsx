@@ -241,4 +241,17 @@ const CreateCustomerView = ({ onSave, onCancel }: CreateCustomerViewProps) => {
   );
 };
 
-export default CreateCustomerView;
+// Page component that wraps the CreateCustomerView
+export default function CreateCustomerPage() {
+  const handleSave = (data: any) => {
+    console.log('Customer data saved:', data);
+    // Handle save logic here
+  };
+
+  const handleCancel = () => {
+    console.log('Create customer cancelled');
+    // Handle cancel logic here
+  };
+
+  return <CreateCustomerView onSave={handleSave} onCancel={handleCancel} />;
+}
