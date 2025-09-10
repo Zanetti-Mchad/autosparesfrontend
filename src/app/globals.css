@@ -1,0 +1,300 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.react-calendar {
+  width: 100% !important;
+  border: none !important;
+  font-family: "Inter", sans-serif !important;
+}
+
+.react-calendar__navigation__label__labelText {
+  font-weight: 600;
+}
+
+.react-calendar__tile--active {
+  background-color: #c3ebfa !important;
+  color: black !important;
+}
+
+.rbc-btn-group:first-child {
+  display: none !important;
+}
+
+.rbc-toolbar-label {
+  text-align: right !important;
+  padding: 0px 20px !important;
+}
+
+.rbc-btn-group:last-child {
+  font-size: 13px !important;
+}
+
+.rbc-btn-group:last-child button {
+  border: none !important;
+  background-color: #f1f0ff !important;
+  margin-left: 2px !important;
+}
+
+.rbc-toolbar button.rbc-active {
+  background-color: #dbdafe !important;
+  box-shadow: none !important;
+}
+
+.rbc-time-view {
+  border-color: #eee !important;
+}
+
+.rbc-time-header {
+  display: none !important;
+}
+
+.rbc-time-content {
+  border: none !important;
+}
+
+.rbc-time-gutter.rbc-time-column {
+  font-size: 12px !important;
+}
+
+.rbc-time-gutter.rbc-time-column .rbc-timeslot-group {
+  padding: 0px 20px !important;
+}
+
+.rbc-timeslot-group {
+  background-color: #f7fdff !important;
+}
+
+.rbc-day-slot {
+  font-size: 14px !important;
+}
+
+.rbc-event {
+  border: none !important;
+  color: black !important;
+  padding: 10px !important;
+  margin: 10px !important;
+  width: 99% !important;
+}
+
+.rbc-event:nth-child(1) {
+  background-color: #e2f8ff !important;
+}
+.rbc-event:nth-child(2) {
+  background-color: #fefce8 !important;
+}
+.rbc-event:nth-child(3) {
+  background-color: #f2f1ff !important;
+}
+.rbc-event:nth-child(4) {
+  background-color: #fdf2fb !important;
+}
+.rbc-event:nth-child(5) {
+  background-color: #e2f8ff !important;
+}
+.rbc-event:nth-child(6) {
+  background-color: #fefce8 !important;
+}
+.rbc-event:nth-child(7) {
+  background-color: #f2f1ff !important;
+}
+.rbc-event:nth-child(8) {
+  background-color: #fdf2fb !important;
+}
+
+.rbc-event-label{
+  color: gray !important;
+  margin-bottom: 5px;
+}
+
+
+/*this
+
+/* Student Activity Section */
+.dashboard {
+  display: flex;
+  /* Use flexbox for side-by-side layout */
+  gap: 20px;
+  /* Add space between the two sections */
+  margin: 20px;
+  /* Optional: Add margin around the container */
+}
+
+.news-activity {
+  width: 40%;
+  background-color: #ded9e4;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.news-activity .header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 18px;
+  color: #333;
+}
+
+.news-activity .header a {
+  color: #007bff;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.activity-list {
+  margin-top: 15px;
+  list-style: none;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.activity-list li {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.activity-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  margin-right: 15px;
+}
+
+.regional-robotics {
+  background-color: #8bcaff;
+}
+
+.regional-debate {
+  background-color: #c7a9ff;
+}
+
+.science-fair {
+  background-color: #ffddc1;
+}
+
+.activity-info h3 {
+  font-size: 16px;
+  color: #333;
+}
+
+.activity-info p {
+  font-size: 12px;
+  color: #666;
+}
+
+.activity-info span {
+  font-size: 10px;
+  color: #aaa;
+}
+
+.notice-board {
+  width: 60%;
+  background-color: #eee5e5;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.notice-board .header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 18px;
+  color: #333;
+}
+
+.options-icon {
+  font-size: 20px;
+  color: #999;
+  cursor: pointer;
+}
+
+.notice-list {
+  margin-top: 15px;
+  list-style: none;
+}
+
+.notice-list li {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.notice-list img {
+  width: 40px;
+  height: 40px;
+  border-radius: 5px;
+  margin-right: 15px;
+}
+
+.notice-info h3 {
+  font-size: 16px;
+  color: #333;
+}
+
+.notice-info span {
+  font-size: 12px;
+  color: #666;
+}
+
+.views {
+  margin-left: auto;
+  font-size: 12px;
+  color: #888;
+}
+/* Add this to your global CSS or component styles */
+.message.unread {
+  background-color: rgba(34, 197, 94, 0.1);
+  font-weight: 500;
+}
+
+.unread-indicator {
+  position: absolute;
+  left: -8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #22c55e;
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  body > div > div:first-child {
+    display: none !important;
+  }
+  
+  body > div > div:last-child {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  
+  /* Hide all navigation elements */
+  nav, header, aside, footer, 
+  [role="navigation"],
+  [class*="sidebar"],
+  [class*="menu"],
+  [class*="nav"] {
+    display: none !important;
+  }
+  
+  /* Ensure content takes full width */
+  .container, main, .content, .main-content {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+}
