@@ -3,7 +3,7 @@ import { IncomingForm, File as FormidableFile } from 'formidable';
 import { createReadStream } from 'fs';
 import { promisify } from 'util';
 import { pipeline } from 'stream';
-import { supabase } from '../lib/supabaseClient';
+import { supabase } from '../../src/lib/supabaseClient';
 
 // Promisify pipeline for async/await
 const pipelineAsync = promisify(pipeline);
