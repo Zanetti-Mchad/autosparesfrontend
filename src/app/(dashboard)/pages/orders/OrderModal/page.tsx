@@ -1,3 +1,4 @@
+"use client";
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { X, User, MapPin, Package, CreditCard, Info, Calendar, Phone, Mail, Home, MapPin as MapPinIcon, Printer } from 'lucide-react';
 
