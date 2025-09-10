@@ -1048,4 +1048,7 @@ const UsersList = ({ editMode = false }: UsersListProps) => {
   );
 };
 
-export default UsersList;
+// Page component that wraps the UsersList
+export default function ViewEditUserPage() {
+  return <UsersList editMode={true} />;
+}
