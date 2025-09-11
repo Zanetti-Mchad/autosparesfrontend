@@ -44,7 +44,7 @@ interface OrderModalProps {
   onSave: (order: Order) => void;
 }
 
-export const OrderModal: React.FC<OrderModalProps> = ({ order, mode, onClose, onSave }) => {
+const OrderModal: React.FC<OrderModalProps> = ({ order, mode, onClose, onSave }) => {
   const [editedOrder, setEditedOrder] = useState<Order | null>(order);
   const printRef = useRef<HTMLDivElement>(null);
   const [isClient, setIsClient] = useState(false);
