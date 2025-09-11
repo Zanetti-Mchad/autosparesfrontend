@@ -18,3 +18,6 @@ export function getSupabase(): SupabaseClient | null {
   }
   return supabaseInstance;
 }
+
+// Backward-compatible named export for modules that import { supabase }
+export const supabase = getSupabase();
