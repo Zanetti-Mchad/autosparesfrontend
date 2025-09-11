@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Trash2, Search, X, AlertTriangle, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import Dialog from '@/components/Dialog';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 
 interface OrderItem {
   id: string;
@@ -535,7 +535,8 @@ const DeleteOrder = () => {
       </div>
 
       {/* Confirmation Dialog */}
-      <Dialog open={showConfirmDialog} onClose={handleCancelDelete}>
+      <Dialog open={showConfirmDialog} onOpenChange={(open: boolean) => setShowConfirmDialog(open)}>
+        <DialogContent>
         <div className="relative">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 bg-red-100 rounded-full">
@@ -577,6 +578,7 @@ const DeleteOrder = () => {
             </button>
           </div>
         </div>
+        </DialogContent>
       </Dialog>
     </div>
   );
