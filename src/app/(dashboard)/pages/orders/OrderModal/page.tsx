@@ -44,7 +44,7 @@ interface OrderModalProps {
   onSave: (order: Order) => void;
 }
 
-const OrderModal: React.FC<OrderModalProps> = ({ order, mode, onClose, onSave }) => {
+export const OrderModal: React.FC<OrderModalProps> = ({ order, mode, onClose, onSave }) => {
   const [editedOrder, setEditedOrder] = useState<Order | null>(order);
   const printRef = useRef<HTMLDivElement>(null);
   const [isClient, setIsClient] = useState(false);
@@ -569,4 +569,15 @@ const OrderModal: React.FC<OrderModalProps> = ({ order, mode, onClose, onSave })
   );
 };
 
-export default OrderModal;
+const OrderModalPage: React.FC = () => {
+  return (
+    <OrderModal
+      order={null}
+      mode="view"
+      onClose={() => {}}
+      onSave={() => {}}
+    />
+  );
+};
+
+export default OrderModalPage;
