@@ -26,7 +26,7 @@ export function setupApiDebugger() {
     let backendUrl;
     try {
       const env = window.env || {};
-      backendUrl = env.BACKEND_API_URL || env.NEXT_PUBLIC_BACKEND_API_URL || 'https://backendrdjs-production.up.railway.app';
+      backendUrl = env.BACKEND_API_URL || env.NEXT_PUBLIC_BACKEND_API_URL || 'autosparesbackend-production.up.railway.app';
       
       // Strip trailing slash if present
       if (backendUrl.endsWith('/')) {
@@ -36,7 +36,7 @@ export function setupApiDebugger() {
       console.log(`🔌 Using backend API URL: ${backendUrl}`);
     } catch (err) {
       console.error('Failed to determine backend URL:', err);
-      backendUrl = 'https://backendrdjs-production.up.railway.app'; // Fallback
+      backendUrl = 'https://autosparesbackend-production.up.railway.app'; // Fallback
     }
     
     // Store the backend URL in window for other scripts to use

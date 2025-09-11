@@ -17,9 +17,23 @@ export const env = {
   
   // Backend API - Use Railway in production, localhost in development
   BACKEND_API_URL: process.env.NODE_ENV === 'production' 
-    ? (process.env.NEXT_PUBLIC_BACKEND_API_URL || 'https://backendrdjs-production.up.railway.app')
+    ? (process.env.NEXT_PUBLIC_BACKEND_API_URL || 'https://autosparesbackend-production.up.railway.app')
     : (process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:4120'),
 
   // Environment indicator
   NODE_ENV: process.env.NODE_ENV || 'development'
 }; 
+
+# Email Configuration
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USER=mahadnyanzi@gmail.com
+EMAIL_PASS=guux jaum ddvq kdlv
+EMAIL_FROM_NAME="Shop DASH"
+EMAIL_FROM=mahadnyanzi@gmail.com
+
+NEXT_PUBLIC_EGOSMS_USERNAME=admin2023
+NEXT_PUBLIC_EGOSMS_PASSWORD=PZ5samJUd24ab@e
+NEXT_PUBLIC_EGOSMS_SENDER=AutoSpares
+
+

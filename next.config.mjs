@@ -10,7 +10,7 @@ const nextConfig = {
   },
   experimental: {
     serverActions: {
-      allowedOrigins: ["localhost:3000", "https://frontendrdjs-production.up.railway.app"]
+      allowedOrigins: ["localhost:3000", "https://autosparesfrontend-production.up.railway.app"]
     }
   },
 

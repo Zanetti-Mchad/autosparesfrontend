@@ -31,7 +31,7 @@ const ViewCustomer = () => {
         
         // Use production URL for now, but can switch to local if needed
         const apiBase = process.env.NODE_ENV === 'production' 
-          ? 'https://backendrdjs-production.up.railway.app/api/v1'
+          ? 'autosparesbackend-production.up.railway.app/api/v1'
           : 'http://localhost:4210/api/v1';
         const url = `${apiBase}/customers?page=1&pageSize=100`;
         
@@ -130,7 +130,7 @@ const ViewCustomer = () => {
       setError(null);
 
       const apiBase = process.env.NODE_ENV === 'production' 
-        ? 'https://backendrdjs-production.up.railway.app/api/v1'
+        ? 'https://autosparesbackend-production.up.railway.app/api/v1'
         : 'http://localhost:4210/api/v1';
       const url = `${apiBase}/customers/${editFormData.id}`;
 
