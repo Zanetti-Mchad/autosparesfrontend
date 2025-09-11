@@ -9,4 +9,6 @@ export {
   DialogClose,
 } from './ui/dialog';
 
+export { Dialog as default } from './ui/dialog';
+
 
