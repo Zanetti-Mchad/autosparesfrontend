@@ -146,7 +146,10 @@ const Login = () => {
           [key: string]: any;
         }
 
-        const response: Response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://autosparesbackend-production.up.railway.app/api/v1';
+        console.log('Using API URL for login:', apiUrl);
+        
+        const response: Response = await fetch(`${apiUrl}/auth/login`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -198,7 +201,8 @@ const Login = () => {
         try {
           // Only attempt to log if the endpoint exists
           if (process.env.NEXT_PUBLIC_ENABLE_LOGGING !== 'false') {
-            const logResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/logs`, {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://autosparesbackend-production.up.railway.app/api/v1';
+          const logResponse = await fetch(`${apiUrl}/logs`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -359,7 +363,8 @@ const Login = () => {
           identifier: otpData.identifier
         });
         
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/reset-password`, {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://autosparesbackend-production.up.railway.app/api/v1';
+        const response = await fetch(`${apiUrl}/auth/reset-password`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
