@@ -9,7 +9,12 @@ interface OrderItem {
   quantity: number;
   price: string;
   total: string;
+  [key: string]: string | number; // Index signature for dynamic property access
 }
+
+type PaymentStatus = 'Paid' | 'Pending' | 'Failed' | 'Refunded';
+type PaymentMethod = 'Mobile Money' | 'Credit Card' | 'Bank Transfer' | 'Cash on Delivery';
+type OrderStatus = 'Pending' | 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled';
 
 interface Order {
   id: string;
@@ -24,11 +29,12 @@ interface Order {
   subtotal: string;
   vat: string;
   total: string;
-  status: string;
-  paymentStatus?: 'Paid' | 'Pending' | 'Failed' | 'Refunded';
-  paymentMethod?: 'Mobile Money' | 'Credit Card' | 'Bank Transfer' | 'Cash on Delivery';
+  status: OrderStatus;
+  paymentStatus?: PaymentStatus;
+  paymentMethod?: PaymentMethod;
   date: string;
   notes?: string;
+  [key: string]: any; // Index signature for dynamic property access
 }
 
 interface OrderModalProps {
@@ -43,6 +49,8 @@ const OrderModal: React.FC<OrderModalProps> = ({ order, mode, onClose, onSave })
   const printRef = useRef<HTMLDivElement>(null);
   const [isClient, setIsClient] = useState(false);
   
+  // Note: We render an error state later if order is null to preserve hook order
+  
   // Set isClient to true after component mounts
   useEffect(() => {
     setIsClient(true);
@@ -52,296 +60,298 @@ const OrderModal: React.FC<OrderModalProps> = ({ order, mode, onClose, onSave })
     setEditedOrder(order);
   }, [order]);
 
+  // Format time helper function
+  const formatTime = useCallback((dateString: string): string => {
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return '';
+      return date.toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: true 
+      });
+    } catch (error) {
+      console.error('Error formatting time:', error);
+      return '';
+    }
+  }, []);
+
+  // Format date helper function
+  const formatDate = useCallback((dateString: string): string => {
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'Invalid date';
+      const options: Intl.DateTimeFormatOptions = { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      };
+      return date.toLocaleDateString('en-US', options);
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Invalid date';
+    }
+  }, []);
+
   // Receipt print function with compact layout
   const handlePrint = useCallback(() => {
-    if (!order) return;
+    if (!isClient || !order) {
+      console.error('Printing is only available on the client side with valid order data');
+      return;
+    }
     
     const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      const formatTime = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-      };
-
-      const formatDateShort = (dateString: string) => {
-        const options: Intl.DateTimeFormatOptions = { 
-          year: 'numeric', 
-          month: 'short', 
-          day: 'numeric'
-        };
-        return new Date(dateString).toLocaleDateString('en-US', options);
-      };
-
+    if (!printWindow) {
+      console.error('Failed to open print window. Please check your popup blocker settings.');
+      return;
+    }
+    
+    try {
+      // Generate print content with proper error handling
       const printContent = `
         <!DOCTYPE html>
         <html>
         <head>
-          <title>Receipt #${order.orderNumber || order.id}</title>
+          <title>Order Receipt #${order.orderNumber || order.id}</title>
           <meta charset="UTF-8">
           <style>
-            @page { 
-              size: 80mm 297mm;  /* Standard receipt width with auto height */
-              margin: 0;
-              padding: 0;
-            }
+            @page { size: auto; margin: 0mm; }
             body { 
-              font-family: 'Courier New', monospace;
-              font-size: 12px;
-              line-height: 1.2;
+              font-family: Arial, sans-serif; 
+              margin: 0; 
+              padding: 15px; 
+              font-size: 14px;
+              line-height: 1.4;
               color: #000;
-              padding: 10px;
-              margin: 0;
-              width: 80mm;
-              max-width: 80mm;
-              word-wrap: break-word;
+              background: #fff;
             }
-            .header {
-              text-align: center;
-              margin-bottom: 5px;
-              padding-bottom: 5px;
-              border-bottom: 1px dashed #000;
-            }
-            .header h1 {
-              font-size: 16px;
-              margin: 5px 0;
-              font-weight: bold;
-              text-transform: uppercase;
-            }
-            .header p {
-              margin: 2px 0;
-              font-size: 10px;
-            }
-            .receipt-info {
-              text-align: center;
-              margin: 5px 0;
-              font-size: 10px;
-            }
-            .customer-info {
-              margin: 5px 0;
-              padding: 5px 0;
-              border-top: 1px dashed #000;
-              border-bottom: 1px dashed #000;
-              font-size: 10px;
-            }
-            .items {
-              width: 100%;
-              border-collapse: collapse;
-              margin: 5px 0;
-            }
-            .items th {
-              text-align: left;
-              border-bottom: 1px dashed #000;
-              padding: 3px 0;
-              font-size: 10px;
-            }
-            .items td {
-              padding: 3px 0;
-              vertical-align: top;
-              font-size: 10px;
-            }
-            .items .name {
-              width: 60%;
-            }
-            .items .qty {
-              width: 10%;
-              text-align: center;
-            }
-            .items .price {
-              width: 30%;
-              text-align: right;
-            }
-            .total-section {
-              margin-top: 5px;
-              border-top: 1px dashed #000;
-              padding-top: 5px;
-              text-align: right;
-              font-weight: bold;
-            }
-            .footer {
-              margin-top: 10px;
-              text-align: center;
-              font-size: 9px;
-              border-top: 1px dashed #000;
-              padding-top: 5px;
-            }
-            .divider {
-              border-top: 1px dashed #000;
-              margin: 5px 0;
-            }
-            .text-center {
-              text-align: center;
-            }
-            .text-right {
-              text-align: right;
+            .receipt-header { text-align: center; margin-bottom: 20px; }
+            .receipt-header h1 { margin: 0; font-size: 18px; font-weight: bold; }
+            .receipt-header p { margin: 5px 0; }
+            .receipt-details { margin-bottom: 20px; }
+            .receipt-details p { margin: 3px 0; }
+            .receipt-items { width: 100%; border-collapse: collapse; margin: 15px 0; }
+            .receipt-items th { text-align: left; border-bottom: 1px solid #000; padding: 5px 0; }
+            .receipt-items td { padding: 5px 0; border-bottom: 1px solid #eee; }
+            .receipt-totals { margin-top: 15px; text-align: right; }
+            .receipt-totals p { margin: 5px 0; }
+            .receipt-footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; }
+            @media print {
+              .no-print { display: none !important; }
+              body { padding: 0; }
             }
           </style>
         </head>
         <body>
-          <div class="header">
-            <h1>SHOPDASH</h1>
-            <p>Kampala, Uganda | +256 700 000000</p>
-            <p>shopdash.ug | support@shopdash.ug</p>
-          </div>
-          
-          <div class="receipt-info">
-            <div>ORDER #${order.orderNumber || order.id}</div>
-            <div>${formatDateShort(order.date)} ${formatTime(order.date)}</div>
-            <div>${order.status} • ${order.paymentStatus || 'Payment Pending'}</div>
-            ${order.paymentMethod ? `<div>${order.paymentMethod}</div>` : ''}
-          </div>
-          
-          <div class="customer-info">
-            <div><strong>${order.customer}</strong></div>
-            <div>${order.phone || ''}</div>
-            <div>${order.address || ''}</div>
-            <div>${order.shippingCity}${order.shippingDistrict ? ', ' + order.shippingDistrict : ''}</div>
-          </div>
-          
-          <table class="items">
-            <thead>
-              <tr>
-                <th class="name">ITEM</th>
-                <th class="qty">QTY</th>
-                <th class="price">AMOUNT</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${order.items.map(item => `
-                <tr>
-                  <td class="name">${item.product}<br><small>${item.size}</small></td>
-                  <td class="qty">${item.quantity}</td>
-                  <td class="price">${item.total}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-          
-          <div class="divider"></div>
-          
-          <div class="total-section">
-            <div>Subtotal: ${order.subtotal}</div>
-            <div>VAT (18%): ${order.vat}</div>
-            <div style="font-size: 14px; margin-top: 3px;">TOTAL: ${order.total}</div>
-          </div>
-          
-          ${order.notes ? `
-            <div class="divider"></div>
-            <div style="font-size: 10px; margin: 5px 0;">
-              <strong>NOTES:</strong> ${order.notes}
+          <div class="receipt">
+            <div class="receipt-header">
+              <h1>ORDER RECEIPT</h1>
+              <p>Order #${order.orderNumber || order.id}</p>
+              <p>${formatDate(order.date)}</p>
             </div>
-          ` : ''}
-          
-          <div class="footer">
-            <div>Thank you for shopping with us!</div>
-            <div>For inquiries: +256 700 000000</div>
-            <div>This is a computer-generated receipt</div>
-            <div style="margin-top: 5px;">${new Date().toLocaleString()}</div>
+            
+            <div class="receipt-details">
+              <p><strong>Customer:</strong> ${order.customer}</p>
+              <p><strong>Email:</strong> ${order.email}</p>
+              <p><strong>Phone:</strong> ${order.phone}</p>
+              <p><strong>Address:</strong> ${order.address}, ${order.shippingCity}, ${order.shippingDistrict}</p>
+              <p><strong>Status:</strong> ${order.status} | <strong>Payment:</strong> ${order.paymentStatus || 'N/A'}</p>
+            </div>
+            
+            <table class="receipt-items">
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th>Qty</th>
+                  <th>Price</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${order.items.map(item => `
+                  <tr>
+                    <td>${item.product} (${item.size})</td>
+                    <td>${item.quantity}</td>
+                    <td>${Number(item.price).toFixed(2)}</td>
+                    <td>${Number(item.total).toFixed(2)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+            
+            <div class="receipt-totals">
+              <p><strong>Subtotal:</strong> ${Number(order.subtotal).toFixed(2)}</p>
+              <p><strong>VAT (18%):</strong> ${Number(order.vat).toFixed(2)}</p>
+              <p><strong>Total:</strong> ${Number(order.total).toFixed(2)}</p>
+            </div>
+            
+            ${order.notes ? `
+              <div class="receipt-notes">
+                <p><strong>Notes:</strong></p>
+                <p>${order.notes}</p>
+              </div>
+            ` : ''}
+            
+            <div class="receipt-footer">
+              <p>Thank you for your business!</p>
+              <p>Generated on ${new Date().toLocaleString()}</p>
+            </div>
+            
+            <div class="no-print" style="margin-top: 20px; text-align: center;">
+              <button onclick="window.print()" style="padding: 8px 16px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                Print Receipt
+              </button>
+              <button onclick="window.close()" style="margin-left: 10px; padding: 8px 16px; background: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                Close
+              </button>
+            </div>
           </div>
           
           <script>
-            // Auto-print when the print window loads
+            // Auto-print when the window loads
             window.onload = function() {
               setTimeout(function() {
                 window.print();
-                window.onafterprint = function() {
+                // Close the window after printing (with a delay to ensure printing starts)
+                setTimeout(function() {
                   window.close();
-                };
-              }, 300);
+                }, 1000);
+              }, 500);
+            };
+            
+            // Handle the case where print is canceled
+            window.onafterprint = function() {
+              window.close();
             };
           </script>
         </body>
         </html>
       `;
       
+      // Write the content to the print window
       printWindow.document.open();
       printWindow.document.write(printContent);
       printWindow.document.close();
+      
+    } catch (error) {
+      console.error('Error generating print content:', error);
+      printWindow.close();
+      
+      // Show error message to user
+      alert('Failed to generate receipt. Please try again.');
     }
-  }, [order]);
+  }, [isClient, order, formatDate]);
 
-  if (!editedOrder) return null;
+  if (!editedOrder) {
+    // Show loading state while order data is being processed
+    return (
+      <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
     
-    // Handle nested fields (e.g., customer, shipping info)
-    if (name.includes('.')) {
-      const [parent, child] = name.split('.');
-      setEditedOrder(prev => {
-        if (!prev) return null;
+    setEditedOrder(prev => {
+      if (!prev) return null;
+      
+      // Handle nested fields (e.g., customer, shipping info)
+      if (name.includes('.')) {
+        const [parent, child] = name.split('.');
         return {
           ...prev,
           [parent]: {
             ...(prev[parent as keyof Order] as object || {}),
-            [child]: value
+            [child]: type === 'number' ? parseFloat(value) || 0 : value
           }
         };
-      });
-    } 
-    // Handle array items (e.g., order items)
-    else if (name.startsWith('items[')) {
-      const match = name.match(/items\[(\d+)\]\.(\w+)/);
-      if (match) {
-        const [_, index, field] = match;
-        setEditedOrder(prev => {
-          if (!prev) return null;
+      }
+      
+      // Handle array items (e.g., order items)
+      if (name.startsWith('items[')) {
+        const match = name.match(/items\[(\d+)\]\.(\w+)/);
+        if (match) {
+          const [_, index, field] = match;
           const updatedItems = [...prev.items];
           updatedItems[parseInt(index)] = {
             ...updatedItems[parseInt(index)],
             [field]: type === 'number' ? parseFloat(value) || 0 : value
           };
           return { ...prev, items: updatedItems };
-        });
+        }
       }
-    }
-    // Handle direct fields
-    else {
-      setEditedOrder(prev => prev ? { 
-        ...prev, 
-        [name]: type === 'number' ? parseFloat(value) || 0 : value 
-      } : null);
-    }
+      
+      // Handle direct fields
+      return {
+        ...prev,
+        [name]: type === 'number' ? parseFloat(value) || 0 : value
+      };
+    });
   };
 
   const handleSave = () => {
-    if (editedOrder) {
-      // Ensure we're only sending the fields that the parent component expects
+    if (!editedOrder) {
+      console.error('No order data to save');
+      return;
+    }
+
+    try {
+      // Create a sanitized order object with all required fields
       const orderToSave: Order = {
-        ...editedOrder,
-        // Make sure all required fields are included
+        id: editedOrder.id,
+        orderNumber: editedOrder.orderNumber,
+        customer: editedOrder.customer || '',
         email: editedOrder.email || '',
         phone: editedOrder.phone || '',
         address: editedOrder.address || '',
         shippingCity: editedOrder.shippingCity || '',
         shippingDistrict: editedOrder.shippingDistrict || '',
-        items: editedOrder.items || [],
+        items: (editedOrder.items || []).map(item => ({
+          id: item.id,
+          product: item.product || '',
+          size: item.size || 'Standard',
+          quantity: Number(item.quantity) || 1,
+          price: item.price || '0',
+          total: item.total || '0'
+        })),
         subtotal: editedOrder.subtotal || '0',
         vat: editedOrder.vat || '0',
         total: editedOrder.total || '0',
+        status: (editedOrder.status as OrderStatus) || 'Pending',
+        paymentStatus: editedOrder.paymentStatus as PaymentStatus | undefined,
+        paymentMethod: editedOrder.paymentMethod as PaymentMethod | undefined,
         date: editedOrder.date || new Date().toISOString(),
-        status: editedOrder.status || 'Pending'
+        notes: editedOrder.notes,
       };
+
       onSave(orderToSave);
       onClose();
+    } catch (error) {
+      console.error('Error saving order:', error);
+      // You might want to show an error message to the user here
     }
   };
 
   const isEditMode = mode === 'edit';
 
-  // Format date to be more readable
-  const formatDate = (dateString: string) => {
-    const options: Intl.DateTimeFormatOptions = { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    };
-    return new Date(dateString).toLocaleDateString('en-US', options);
-  };
+  // (formatDate is defined above)
 
+  // Use the edited order if available, otherwise fall back to the original order
   const current = editedOrder || order;
-  if (!current) return null;
+  if (!current) {
+    return (
+      <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+        <div className="bg-background rounded-2xl shadow-2xl p-6 max-w-md w-full">
+          <p>Unable to load order data.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-fade-in-fast">
@@ -446,12 +456,13 @@ const OrderModal: React.FC<OrderModalProps> = ({ order, mode, onClose, onSave })
                         <option value="Pending">Pending</option>
                         <option value="Processing">Processing</option>
                         <option value="Shipped">Shipped</option>
-                        <option value="Completed">Completed</option>
+                        <option value="Delivered">Delivered</option>
+                        <option value="Cancelled">Cancelled</option>
                       </select>
                     ) : (
                       <p className="mt-1">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          current.status === 'Completed' ? 'bg-green-100 text-green-800' :
+                          current.status === 'Delivered' ? 'bg-green-100 text-green-800' :
                           current.status === 'Processing' ? 'bg-blue-100 text-blue-800' :
                           current.status === 'Shipped' ? 'bg-yellow-100 text-yellow-800' :
                           'bg-orange-100 text-orange-800'
