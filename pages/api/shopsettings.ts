@@ -69,6 +69,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Upload to Supabase Storage
     const fileStream = createReadStream(file.filepath);
+    
+    // Check if Supabase client is available
+    if (!supabase) {
+      return res.status(500).json({ 
+        success: false,
+        message: 'Storage service not configured',
+        error: 'Missing Supabase configuration' 
+      });
+    }
+    
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('shopsettings-photo')
       .upload(`photos/${fileName}`, fileStream, {
@@ -87,6 +97,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Get public URL
+    if (!supabase) {
+      return res.status(500).json({ 
+        success: false,
+        message: 'Storage service not configured',
+        error: 'Missing Supabase configuration' 
+      });
+    }
+    
     const { data: { publicUrl } } = supabase.storage
       .from('shopsettings-photo')
       .getPublicUrl(`photos/${fileName}`);

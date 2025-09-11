@@ -31,6 +31,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const fileBuffer = fs.readFileSync(file.filepath);
 
     // Upload to Supabase Storage (shopstaff-photos bucket)
+    if (!supabase) {
+      return res.status(500).json({ message: 'Storage service not configured' });
+    }
+    
     const { error } = await supabase.storage
       .from('shopstaff-photos')
       .upload(fileName, fileBuffer, {
@@ -43,6 +47,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Get public URL
+    if (!supabase) {
+      return res.status(500).json({ message: 'Storage service not configured' });
+    }
+    
     const { data: publicUrlData } = supabase.storage
       .from('shopstaff-photos')
       .getPublicUrl(fileName);
