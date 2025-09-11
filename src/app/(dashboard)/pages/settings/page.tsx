@@ -4,7 +4,7 @@ import { Save, Camera, MapPin, User, Hash, Mail, Phone, Loader2, X } from 'lucid
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { supabase } from '@/lib/supabaseClient';
+import { getSupabase } from '@/lib/supabaseClient';
 
 // API base URL - using Next.js environment variables
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4210/api/v1';
@@ -176,6 +176,10 @@ const SettingsView: React.FC = () => {
       console.log('Uploading photo to Supabase:', fileName);
       
       // Upload directly to Supabase Storage
+      const supabase = getSupabase();
+      if (!supabase) {
+        throw new Error('Supabase is not configured');
+      }
       const { data, error } = await supabase.storage
         .from('shopsettings-photos')
         .upload(`photos/${fileName}`, file, {
