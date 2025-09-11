@@ -37,12 +37,8 @@ export async function sendQuickSMS(
   }
 
   return sendSMS({
-    username: config.username,
-    password: config.password,
-    sender: config.sender,
-    number: formattedNumber,
+    phoneNumber: formattedNumber,
     message: messageText,
-    priority,
     useSandbox: config.useSandbox
   });
 }
