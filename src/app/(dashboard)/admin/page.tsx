@@ -125,7 +125,7 @@ const AdminPage = () => {
   const fetchDashboardStats = useCallback(async () => {
     try {
       const apiBase = process.env.NODE_ENV === 'production' 
-        ? 'https://backendrdjs-production.up.railway.app/api/v1'
+        ? 'https://autosparesbackend-production.up.railway.app/api/v1'
         : 'http://localhost:4210/api/v1';
       const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
 

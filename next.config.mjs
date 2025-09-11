@@ -19,7 +19,7 @@ const nextConfig = {
       {
         source: '/api/:path*',
         destination: process.env.NODE_ENV === 'production' 
-          ? 'https://backendrdjs-production.up.railway.app/api/:path*' 
+          ? 'https://autosparesbackend-production.up.railway.app/api/:path*' 
           : 'http://localhost:4120/api/:path*', // Local development or Railway production
       },
     ];

@@ -251,6 +251,7 @@ const AddUser = () => {
                   <option value="admin">Administrator</option>
                   <option value="manager">Manager</option>
                   <option value="user">User</option>
+                  <option value="storekeeper">Storekeeper</option>
                 </select>
               </div>
             </div>
