@@ -14,7 +14,7 @@ interface PrintableContentProps {
 const PrintableContent = forwardRef<HTMLDivElement, PrintableContentProps>(
   ({ children, title = "Document", className = "" }, ref) => {
     const handlePrint = useReactToPrint({
-      content: () => ref?.current,
+      contentRef: ref as React.RefObject<HTMLDivElement>,
       documentTitle: title,
       pageStyle: `
         @page {
