@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from 'react';
 import { CheckCircle, XCircle } from 'lucide-react';
-import Dialog from '@/components/Dialog';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 
 interface OrderItem {
   id: string;
@@ -1007,7 +1007,8 @@ const ViewEditOrder = () => {
       )}
 
       {/* Confirmation Dialog */}
-      <Dialog open={showConfirmDialog} onClose={cancelStatusChange}>
+      <Dialog open={showConfirmDialog} onOpenChange={(open: boolean) => open ? setShowConfirmDialog(true) : cancelStatusChange()}>
+        <DialogContent>
         <div className="relative">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 bg-amber-100 rounded-full">
@@ -1037,6 +1038,7 @@ const ViewEditOrder = () => {
             </button>
       </div>
       </div>
+        </DialogContent>
       </Dialog>
     </div>
   );
