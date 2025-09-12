@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import { fetchApi } from '@/lib/apiConfig';
 import { motion } from 'framer-motion';
 import { User, Building, Mail, Phone, MapPin, Calendar, ArrowLeft, Edit, Trash2, FileText, Users, Search, Filter, Save } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -129,24 +130,10 @@ const ViewCustomer = () => {
       setSaving(true);
       setError(null);
 
-      const apiBase = process.env.NODE_ENV === 'production' 
-        ? 'https://autosparesbackend-production.up.railway.app/api/v1'
-        : 'http://localhost:4210/api/v1';
-      const url = `${apiBase}/customers/${editFormData.id}`;
-
-      const response = await fetch(url, {
+      const data = await fetchApi(`/customers/${editFormData.id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(editFormData),
       });
-
-      if (!response.ok) {
-        throw new Error(`Failed to update customer: ${response.statusText}`);
-      }
-
-      const data = await response.json();
       
       if (data.status?.returnCode === 200 || data.status?.returnCode === "00" || data.status?.returnCode === 0) {
         // Update the customer in the local state

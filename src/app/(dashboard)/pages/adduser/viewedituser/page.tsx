@@ -1,6 +1,7 @@
 "use client";
 // src/components/users/UsersList.tsx
 import React, { useState, useEffect } from 'react';
+import { fetchApi } from '@/lib/apiConfig';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
@@ -238,7 +239,7 @@ const UsersList = ({ editMode = false }: UsersListProps) => {
         return;
       }
 
-      const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/integration/users/${editFormData.id}`;
+      const apiUrl = `/integration/users/${editFormData.id}`;
       console.log('✏️ [UPDATE USER] API URL:', apiUrl);
       console.log('✏️ [UPDATE USER] User ID:', editFormData.id);
       console.log('✏️ [UPDATE USER] Access Token:', accessToken ? 'Present' : 'Missing');
@@ -246,12 +247,11 @@ const UsersList = ({ editMode = false }: UsersListProps) => {
       console.log('✏️ [UPDATE USER] Update Data Keys:', Object.keys(editFormData));
 
       // Update user via API
-      const response = await fetch(apiUrl, {
+      const response = await fetchApi(apiUrl, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${accessToken}`,
-        },
+        } as any,
         body: JSON.stringify(editFormData),
       });
 
@@ -259,13 +259,7 @@ const UsersList = ({ editMode = false }: UsersListProps) => {
       console.log('✏️ [UPDATE USER] Response OK:', response.ok);
       console.log('✏️ [UPDATE USER] Response Headers:', Object.fromEntries(response.headers.entries()));
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('❌ [UPDATE USER] Error Response Body:', errorData);
-        throw new Error(errorData.message || 'Failed to update user');
-      }
-
-      const result = await response.json();
+      const result = response;
       console.log('📊 [UPDATE USER] Response Data:', result);
       console.log('📊 [UPDATE USER] Response Type:', typeof result);
 
@@ -434,28 +428,22 @@ const UsersList = ({ editMode = false }: UsersListProps) => {
           throw new Error('No access token found');
         }
 
-        const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/integration/users`;
+        const apiUrl = `/integration/users`;
         console.log('🔍 [FETCH USERS] API URL:', apiUrl);
         console.log('🔍 [FETCH USERS] Access Token:', accessToken ? 'Present' : 'Missing');
 
-        const response = await fetch(apiUrl, {
+        const response = await fetchApi(apiUrl, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${accessToken}`,
-          },
+          } as any,
         });
 
         console.log('🔍 [FETCH USERS] Response Status:', response.status);
         console.log('🔍 [FETCH USERS] Response OK:', response.ok);
         console.log('🔍 [FETCH USERS] Response Headers:', Object.fromEntries(response.headers.entries()));
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('❌ [FETCH USERS] Error Response Body:', errorText);
-          throw new Error('Failed to fetch users');
-        }
-
-        const result = await response.json();
+        const result = response;
         console.log('📊 [FETCH USERS] Raw API Response:', result);
         console.log('📊 [FETCH USERS] Response Type:', typeof result);
         console.log('📊 [FETCH USERS] Is Array:', Array.isArray(result));
@@ -718,23 +706,17 @@ const UsersList = ({ editMode = false }: UsersListProps) => {
               console.log('🔄 [REFRESH USERS] API URL:', apiUrl);
               console.log('🔄 [REFRESH USERS] Access Token:', accessToken ? 'Present' : 'Missing');
 
-              const response = await fetch(apiUrl, {
+              const response = await fetchApi(apiUrl, {
                 method: 'GET',
                 headers: {
                   'Authorization': `Bearer ${accessToken}`,
-                },
+                } as any,
               });
 
               console.log('🔄 [REFRESH USERS] Response Status:', response.status);
               console.log('🔄 [REFRESH USERS] Response OK:', response.ok);
 
-              if (!response.ok) {
-                const errorText = await response.text();
-                console.error('❌ [REFRESH USERS] Error Response Body:', errorText);
-                throw new Error('Failed to fetch users');
-              }
-
-              const result = await response.json();
+              const result = response;
               console.log('📊 [REFRESH USERS] Raw API Response:', result);
               console.log('📊 [REFRESH USERS] Response Type:', typeof result);
               console.log('📊 [REFRESH USERS] Is Array:', Array.isArray(result));

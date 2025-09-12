@@ -1,5 +1,6 @@
 "use client"
 import React, { useEffect, useState } from 'react';
+import { fetchApi } from '@/lib/apiConfig';
 
 type InventoryItem = {
   id: string;
@@ -34,19 +35,12 @@ const DeleteInventory = () => {
           return;
         }
 
-        const response = await fetch('http://localhost:4210/api/v1/inventory/inventory', {
+        const data = await fetchApi('/inventory/inventory', {
           method: 'GET',
           headers: { 
             'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json' 
-          }
+          } as any
         });
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch inventory');
-        }
-        
-        const data = await response.json();
         // Handle nested API formats: { data: { items: [...] } } or { items: [...] } or array
         let items: unknown = (data?.data && data.data.items) ? data.data.items : (data.items ?? data.data ?? data);
         if (Array.isArray(items)) {
@@ -73,18 +67,12 @@ const DeleteInventory = () => {
         return;
       }
 
-      const response = await fetch(`http://localhost:4210/api/v1/inventory/inventory/${id}`, {
+      await fetchApi(`/inventory/inventory/${id}`, {
         method: 'DELETE',
         headers: { 
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json' 
-        }
+        } as any
       });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.status?.returnMessage || 'Failed to delete inventory item');
-      }
       
       setInventory(inv => inv.filter(item => item.id !== id));
       setDeleteId(null);

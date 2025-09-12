@@ -7,15 +7,7 @@ import {
   AlertCircle, Check, RefreshCw, Loader2
 } from 'lucide-react';
 
-// API base URL - using Next.js environment variables
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4210/api/v1';
-
-// Safely join base URL and path
-const buildApiUrl = (path: string) => {
-  const base = API_BASE_URL.replace(/\/$/, '');
-  const suffix = path.startsWith('/') ? path : `/${path}`;
-  return `${base}${suffix}`;
-};
+import { fetchApi, buildApiUrl } from '@/lib/apiConfig';
 
 // Log interface to match API response
 interface SecurityLog {
@@ -67,18 +59,12 @@ const ProfilePage = () => {
       const token = localStorage.getItem('accessToken');
       if (!token) return null;
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/integration/users/${userId}`, {
+      const result = await fetchApi(`/integration/users/${userId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+        } as any,
       });
-
-      if (response.ok) {
-        const result = await response.json();
-        // The API might return data in a nested structure
-        return result.data || result;
-      }
+      return (result as any).data || result;
     } catch (error) {
       console.error('Error fetching user data:', error);
     }
@@ -298,22 +284,18 @@ const ProfilePage = () => {
       }
       
       // API call to update the password
-      const serverHost = 'http://localhost:4210'; // Hard-coded for now
-      const response = await fetch(`${serverHost}/api/v1/auth/change-password`, {
+      const data = await fetchApi('/auth/change-password', {
         method: 'POST',
         headers: { 
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
-        },
+        } as any,
         body: JSON.stringify({
           currentPassword,
           newPassword
         })
       });
       
-      const data = await response.json();
-      
-      if (response.ok && data.status?.returnCode < 400) {
+      if ((data as any).status?.returnCode < 400) {
         setPasswordSuccess('Password updated successfully!');
         setCurrentPassword('');
         setNewPassword('');
@@ -418,25 +400,23 @@ const ProfilePage = () => {
         newPassword
       };
 
-      const response = await fetch(`${API_BASE_URL}/auth/reset-password`, {
+      const data = await fetchApi('/auth/reset-password', {
         method: 'POST',
         headers,
         body: JSON.stringify(requestBody)
       });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok || (data.status && data.status.returnCode !== '00')) {
-        throw new Error(data.message || (data.status?.returnMessage) || 'Password reset failed');
+      if ((data as any).status && (data as any).status.returnCode !== '00') {
+        throw new Error((data as any).message || ((data as any).status?.returnMessage) || 'Password reset failed');
       }
 
       // Create log for successful password reset
       const userId = JSON.parse(localStorage.getItem('user') || '{}').id;
       try {
-        await fetch(`${API_BASE_URL}/logs/logs`, {
+        await fetchApi('/logs/logs', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
             ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {})
-          },
+          } as any,
           body: JSON.stringify({ userId, action: 'PASSWORD_RESET', status: 'SUCCESS' })
         });
       } catch (_) {

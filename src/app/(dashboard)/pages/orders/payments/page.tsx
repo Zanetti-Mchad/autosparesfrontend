@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect, useCallback } from 'react';
+import { fetchApi } from '@/lib/apiConfig';
 import { CheckCircle, XCircle, DollarSign, Eye, Edit, Search, History } from 'lucide-react';
 import Dialog from '@/components/Dialog';
 
@@ -277,31 +278,17 @@ const PaymentsPage = () => {
 
 
   const fetchOrderPayments = async (orderId: string): Promise<Payment[]> => {
-    const apiBase = process.env.NODE_ENV === 'production'
-      ? 'https://backendrdjs-production.up.railway.app/api/v1'
-      : 'http://localhost:4210/api/v1';
     const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
     
     console.log('💳 Fetching payments for order:', orderId);
     
     try {
-      const res = await fetch(`${apiBase}/orders/${orderId}/payments`, {
+      const result = await fetchApi(`/orders/${orderId}/payments`, {
         method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        } as any,
       });
-      
-      console.log('💳 Payments response:', res.status, res.statusText);
-      
-      if (!res.ok) {
-        const txt = await res.text();
-        console.error('❌ Failed to fetch payments:', res.status, txt);
-        throw new Error(`Failed to fetch payments: ${res.status} ${txt}`);
-      }
-      
-      const result = await res.json();
       console.log('✅ Payments fetched successfully:', result);
       
       // Extract payments from the response structure
@@ -320,9 +307,6 @@ const PaymentsPage = () => {
   };
 
   const recordPayment = async (orderId: string, payment: Partial<Payment>) => {
-    const apiBase = process.env.NODE_ENV === 'production'
-      ? 'https://backendrdjs-production.up.railway.app/api/v1'
-      : 'http://localhost:4210/api/v1';
     const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
     
     console.log('💰 Recording payment for order:', orderId, payment);
@@ -334,24 +318,13 @@ const PaymentsPage = () => {
     console.log('📤 Request body:', requestBody);
     
     try {
-      const res = await fetch(`${apiBase}/orders/${orderId}/payments`, {
+      const result = await fetchApi(`/orders/${orderId}/payments`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        } as any,
         body: JSON.stringify(requestBody),
       });
-      
-      console.log('💳 Payment response:', res.status, res.statusText);
-      
-      if (!res.ok) {
-        const txt = await res.text();
-        console.error('❌ Payment failed:', res.status, txt);
-        throw new Error(`Payment recording failed: ${res.status} ${txt}`);
-      }
-      
-      const result = await res.json();
       console.log('✅ Payment recorded successfully:', result);
       
       // Fetch updated payments for this specific order

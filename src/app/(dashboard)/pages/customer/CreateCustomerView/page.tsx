@@ -12,6 +12,7 @@ import {
   FileSignature as FileText
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { fetchApi } from '@/lib/apiConfig';
 
 interface CreateCustomerViewProps {
   onSave: (data: any) => void;
@@ -38,11 +39,7 @@ const CreateCustomerView = ({ onSave, onCancel }: CreateCustomerViewProps) => {
     setIsSubmitting(true);
     try {
       const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-      // Use production URL for now, but can switch to local if needed
-      const apiBase = process.env.NODE_ENV === 'production' 
-        ? 'https://autosparesbackend-production.up.railway.app/api/v1'
-        : 'http://localhost:4210/api/v1';
-      const url = `${apiBase}/customers`;
+      const url = `/customers`;
 
       // Build payload according to selected type
       const payload = {
@@ -65,20 +62,13 @@ const CreateCustomerView = ({ onSave, onCancel }: CreateCustomerViewProps) => {
             }),
       };
 
-      const res = await fetch(url, {
+      const data = await fetchApi(url, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
           ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-        },
+        } as any,
         body: JSON.stringify(payload),
       });
-
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        const message = data?.status?.returnMessage || data?.message || 'Failed to create customer';
-        throw new Error(message);
-      }
 
       toast.success('Customer created successfully');
       // Optional: pass created data up

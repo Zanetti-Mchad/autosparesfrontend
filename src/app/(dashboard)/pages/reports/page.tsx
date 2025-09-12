@@ -1,5 +1,6 @@
 'use client';
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import { fetchApi, buildApiUrl } from '@/lib/apiConfig';
 import { 
   FileText, Download, Calendar, Filter, Search, BarChart3, 
   TrendingUp, DollarSign, Users, Package, Check
@@ -74,7 +75,7 @@ const ReportsView = () => {
     description?: string;
   }>>([]);
 
-  const apiBase = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4210/api/v1').replace(/\/$/, '');
+  const apiBase = (buildApiUrl('/')).replace(/\/$/, '');
 
   // Inline report rendering; no routing/navigation needed
 
@@ -176,18 +177,13 @@ const ReportsView = () => {
       try {
         setError(null);
         const token = localStorage.getItem('accessToken');
-        const url = `${apiBase}/orders/dashboard/stats`;
-        const res = await fetch(url, {
+        const url = `/orders/dashboard/stats`;
+        const result = await fetchApi(url, {
           headers: {
-            'Authorization': token ? `Bearer ${token}` : '',
-            'Content-Type': 'application/json',
-          },
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+          } as any,
         });
-        console.log('[Reports] Fetch stats ->', { url, status: res.status, ok: res.ok });
-        if (!res.ok) {
-          throw new Error(`Failed to fetch stats: ${res.status}`);
-        }
-        const result = await res.json();
+        console.log('[Reports] Fetch stats ->', { url });
         console.log('[Reports] Stats JSON:', result);
         const data = result?.data || result;
         setStats({
@@ -218,16 +214,13 @@ const ReportsView = () => {
       setLoading(true);
       setError(null);
       const token = localStorage.getItem('accessToken');
-      const url = `${apiBase}/orders`;
-      const res = await fetch(url, {
+      const url = `/orders`;
+      const result = await fetchApi(url, {
         headers: {
-          'Authorization': token ? `Bearer ${token}` : '',
-          'Content-Type': 'application/json',
-        },
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        } as any,
       });
-      console.log('[Reports] Fetch orders ->', { url, status: res.status, ok: res.ok });
-      if (!res.ok) throw new Error(`Failed to fetch orders: ${res.status}`);
-      const result = await res.json();
+      console.log('[Reports] Fetch orders ->', { url });
       console.log('[Reports] Orders JSON:', result);
       const payload = result?.data ?? result;
       const list = Array.isArray(payload)
@@ -270,7 +263,7 @@ const ReportsView = () => {
       setLoading(true);
       setError(null);
       const token = localStorage.getItem('accessToken');
-      const ordersUrl = `${apiBase}/orders?page=1&limit=200`;
+      const ordersUrl = buildApiUrl('/orders?page=1&limit=200');
       const ordersRes = await fetch(ordersUrl, {
         headers: {
           'Authorization': token ? `Bearer ${token}` : '',
@@ -297,7 +290,7 @@ const ReportsView = () => {
           total: Number(o.total ?? o.amount?.total ?? o.totalAmount ?? o.subtotal ?? 0) || 0,
           date: o.date ?? o.createdAt ?? undefined,
         };
-        const paymentsUrl = `${apiBase}/orders/${orderId}/payments`;
+        const paymentsUrl = buildApiUrl(`/orders/${orderId}/payments`);
         try {
           const payRes = await fetch(paymentsUrl, {
             headers: {
@@ -390,7 +383,7 @@ const ReportsView = () => {
       setLoading(true);
       setError(null);
       const token = localStorage.getItem('accessToken');
-      const url = `${apiBase}/inventory/inventory`;
+      const url = buildApiUrl('/inventory/inventory');
       const res = await fetch(url, {
         headers: {
           'Authorization': token ? `Bearer ${token}` : '',

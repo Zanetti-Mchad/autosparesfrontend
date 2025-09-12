@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect, useCallback } from 'react';
+import { fetchApi } from '@/lib/apiConfig';
 import { Trash2, Search, X, AlertTriangle, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
@@ -121,23 +122,13 @@ const DeleteOrder = () => {
 
     try {
       setLoading(true);
-      const apiBase = process.env.NODE_ENV === 'production'
-        ? 'https://backendrdjs-production.up.railway.app/api/v1'
-        : 'http://localhost:4210/api/v1';
       const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
       const params = new URLSearchParams({ page: '1', limit: '50' });
-      const res = await fetch(`${apiBase}/orders?${params.toString()}`, {
+      const data = await fetchApi(`/orders?${params.toString()}`, {
         headers: {
-          'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        }
+        } as any,
       });
-      if (!res.ok) {
-        const errorText = await res.text();
-        console.error('❌ API Error Response:', errorText);
-        throw new Error(`Failed to load orders: ${res.status} - ${errorText}`);
-      }
-      const data = await res.json();
       console.log('Orders API response:', data);
       const items = (data?.data?.items ?? data?.items ?? data) as any[];
       if (Array.isArray(items)) {
@@ -236,32 +227,21 @@ const DeleteOrder = () => {
     setShowConfirmDialog(false);
     
     try {
-      const apiBase = process.env.NODE_ENV === 'production'
-        ? 'https://backendrdjs-production.up.railway.app/api/v1'
-        : 'http://localhost:4210/api/v1';
       const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
       
       console.log('🗑️ Deleting order:', orderId);
       console.log('🌐 API Base:', apiBase);
       console.log('🔑 Token available:', !!token);
       
-      const res = await fetch(`${apiBase}/orders/${orderId}`, {
+      const res = await fetchApi(`/orders/${orderId}`, {
         method: 'DELETE',
         headers: {
-          'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        } as any,
       });
       
-      console.log('🗑️ Delete response:', res.status, res.statusText);
-      
-      if (!res.ok) {
-        const txt = await res.text();
-        console.error('❌ Delete failed:', res.status, txt);
-        throw new Error(`Failed to delete order: ${res.status} ${txt}`);
-      }
-      
-      const result = await res.json();
+      console.log('🗑️ Delete response: success');
+      const result = res;
       console.log('✅ Order deleted successfully:', result);
       
       // Remove from local state

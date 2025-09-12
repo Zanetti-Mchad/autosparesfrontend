@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import { fetchApi } from '@/lib/apiConfig';
 
 interface Category {
   id: string;
@@ -25,19 +26,12 @@ const ViewEditCategoryPage = () => {
           return;
         }
 
-        const response = await fetch('http://localhost:4210/api/v1/inventory/categories', {
+        const data = await fetchApi('/inventory/categories', {
           method: 'GET',
           headers: { 
             'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json' 
-          }
+          } as any
         });
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch categories');
-        }
-        
-        const data = await response.json();
         const categoriesData = data.data || [];
         
         setCategories(categoriesData);
@@ -63,22 +57,16 @@ const ViewEditCategoryPage = () => {
         return;
       }
 
-      const response = await fetch(`http://localhost:4210/api/v1/inventory/categories/${updatedCategory.id}`, {
+      await fetchApi(`/inventory/categories/${updatedCategory.id}`, {
         method: 'PUT',
         headers: { 
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json' 
-        },
+        } as any,
         body: JSON.stringify({
           name: updatedCategory.name,
           description: `Category for ${updatedCategory.name}`
         })
       });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.status?.returnMessage || 'Failed to update category');
-      }
       
       setCategories(prev => 
         prev.map(cat => 

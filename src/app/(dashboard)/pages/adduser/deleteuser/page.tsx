@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Trash2, X, User, AlertTriangle, Loader2, Search, ArrowLeft, Users, RefreshCw, Edit } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { fetchApi } from '@/lib/apiConfig';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -46,26 +47,17 @@ const DeleteUser = () => {
           return;
         }
 
-        const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/integration/users`;
+        const apiUrl = `/integration/users`;
         console.log('🔍 [DELETE USER] API URL:', apiUrl);
 
-        const response = await fetch(apiUrl, {
+        const response = await fetchApi(apiUrl, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${accessToken}`,
-          },
+          } as any,
         });
 
-        console.log('🔍 [DELETE USER] Response Status:', response.status);
-        console.log('🔍 [DELETE USER] Response OK:', response.ok);
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('❌ [DELETE USER] Error Response Body:', errorText);
-          throw new Error('Failed to fetch users');
-        }
-
-        const result = await response.json();
+        const result = response;
         console.log('📊 [DELETE USER] Raw API Response:', result);
         console.log('📊 [DELETE USER] Response Type:', typeof result);
         console.log('📊 [DELETE USER] Has Data Property:', 'data' in result);
@@ -108,26 +100,16 @@ const DeleteUser = () => {
         return;
       }
 
-      const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/integration/users/${userToDelete.id}`;
+      const apiUrl = `/integration/users/${userToDelete.id}`;
       console.log('🗑️ [DELETE USER] API URL:', apiUrl);
 
-      const response = await fetch(apiUrl, {
+      const result = await fetchApi(apiUrl, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
-        },
+        } as any,
       });
-
-      console.log('🗑️ [DELETE USER] Response Status:', response.status);
-      console.log('🗑️ [DELETE USER] Response OK:', response.ok);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ [DELETE USER] Error Response Body:', errorText);
-        throw new Error('Failed to delete user');
-      }
-
-      const result = await response.json();
+      
       console.log('📊 [DELETE USER] Delete Response:', result);
       
       // Remove user from local state

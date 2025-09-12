@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
-import { env } from '@/env';
+import { fetchApi } from '@/lib/apiConfig';
 
 const LogoutPage = () => {
   const router = useRouter();
@@ -17,23 +17,13 @@ const LogoutPage = () => {
       const userId = JSON.parse(localStorage.getItem('user') || '{}').id;
       
       // Call the logout API endpoint (which also logs the action)
-      const response = await fetch(`${env.BACKEND_API_URL}/api/v1/logout/logout`, {
+      await fetchApi('/logout/logout', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
-        },
         body: JSON.stringify({ 
           userId, 
           status: "SUCCESSFUL" 
         })
       });
-      
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.message || 'Logout failed');
-      }
       
       // Clear all storage
       localStorage.clear();
@@ -50,12 +40,8 @@ const LogoutPage = () => {
         const userId = JSON.parse(localStorage.getItem('user') || '{}').id;
         const accessToken = localStorage.getItem('accessToken');
         
-        await fetch(`${env.BACKEND_API_URL}/api/v1/logout/logout`, {
+        await fetchApi('/logout/logout', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`
-          },
           body: JSON.stringify({
             userId,
             status: "FAILED"

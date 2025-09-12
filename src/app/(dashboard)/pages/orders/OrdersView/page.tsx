@@ -34,6 +34,7 @@ interface Order {
   notes?: string;
 }
 import { Eye, Edit, Search } from 'lucide-react';
+import { fetchApi } from '@/lib/apiConfig';
 
 type OrderModalProps = {
   order: Order | null;
@@ -465,49 +466,28 @@ const ViewEditOrder = () => {
   };
 
   const patchOrderStatus = async (orderId: string, status: string) => {
-    const apiBase = process.env.NODE_ENV === 'production'
-      ? 'https://backendrdjs-production.up.railway.app/api/v1'
-      : 'http://localhost:4210/api/v1';
     const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-    const res = await fetch(`${apiBase}/orders/${orderId}/status`, {
+    return fetchApi(`/orders/${orderId}/status`, {
       method: 'PATCH',
       headers: {
-        'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
+      } as any,
       body: JSON.stringify({ status }),
     });
-    if (!res.ok) {
-      const txt = await res.text();
-      throw new Error(`Status update failed: ${res.status} ${txt}`);
-    }
-    return res.json();
   };
 
   const patchPaymentStatus = async (orderId: string, paymentStatus: string) => {
-    const apiBase = process.env.NODE_ENV === 'production'
-      ? 'https://backendrdjs-production.up.railway.app/api/v1'
-      : 'http://localhost:4210/api/v1';
     const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-    const res = await fetch(`${apiBase}/orders/${orderId}/payment`, {
+    return fetchApi(`/orders/${orderId}/payment`, {
       method: 'PATCH',
       headers: {
-        'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
+      } as any,
       body: JSON.stringify({ paymentStatus }),
     });
-    if (!res.ok) {
-      const txt = await res.text();
-      throw new Error(`Payment update failed: ${res.status} ${txt}`);
-    }
-    return res.json();
   };
 
   const updateOrder = async (updated: Order) => {
-    const apiBase = process.env.NODE_ENV === 'production'
-      ? 'https://backendrdjs-production.up.railway.app/api/v1'
-      : 'http://localhost:4210/api/v1';
     const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
 
     const mappedItems = (updated.items || [])
@@ -534,7 +514,7 @@ const ViewEditOrder = () => {
       items: mappedItems,
     };
 
-    const url = `${apiBase}/orders/${updated.id}`;
+    const url = `/orders/${updated.id}`;
     // Debug log for outgoing request
     try {
       console.log('Edit Order request →', { url, method: 'PATCH', payload });
@@ -542,20 +522,13 @@ const ViewEditOrder = () => {
       // ignore logging errors
     }
 
-    const res = await fetch(url, {
+    return fetchApi(url, {
       method: 'PATCH',
       headers: {
-        'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
+      } as any,
       body: JSON.stringify(payload),
     });
-    
-    if (!res.ok) {
-      const txt = await res.text();
-      throw new Error(`Order update failed: ${res.status} ${txt}`);
-    }
-    return res.json();
   };
 
   const confirmStatusChange = async () => {
@@ -593,18 +566,12 @@ const ViewEditOrder = () => {
 
   const fetchOrderById = async (orderId: string): Promise<Order | null> => {
     try {
-      const apiBase = process.env.NODE_ENV === 'production'
-        ? 'https://backendrdjs-production.up.railway.app/api/v1'
-        : 'http://localhost:4210/api/v1';
       const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-      const res = await fetch(`${apiBase}/orders/${orderId}`, {
+      const data = await fetchApi(`/orders/${orderId}`, {
         headers: {
-          'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        }
+        } as any,
       });
-      if (!res.ok) throw new Error(`Failed to load order ${orderId}: ${res.status}`);
-      const data = await res.json();
       console.log('Order detail API response:', data);
       const o: any = (data?.data ?? data?.order ?? data) as any;
       const rawItems: any[] = Array.isArray(o.items)
@@ -649,19 +616,13 @@ const ViewEditOrder = () => {
   React.useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const apiBase = process.env.NODE_ENV === 'production'
-          ? 'https://backendrdjs-production.up.railway.app/api/v1'
-          : 'http://localhost:4210/api/v1';
         const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
         const params = new URLSearchParams({ page: '1', limit: '20' });
-        const res = await fetch(`${apiBase}/orders?${params.toString()}`, {
+        const data = await fetchApi(`/orders?${params.toString()}`, {
           headers: {
-            'Content-Type': 'application/json',
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          }
+          } as any,
         });
-        if (!res.ok) throw new Error(`Failed to load orders: ${res.status}`);
-        const data = await res.json();
         console.log('Orders API response:', data);
         const items = (data?.data?.items ?? data?.items ?? data) as any[];
         if (Array.isArray(items)) {

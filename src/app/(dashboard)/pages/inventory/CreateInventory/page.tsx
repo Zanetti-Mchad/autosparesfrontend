@@ -1,5 +1,6 @@
 "use client"
 import React, { useEffect, useState } from 'react';
+import { fetchApi } from '@/lib/apiConfig';
 import Image from 'next/image';
 
 type InventoryForm = {
@@ -32,18 +33,17 @@ const CreateInventory = ({ onItemCreated }: { onItemCreated?: (item: InventoryFo
       try {
         setLoadingCategories(true);
         const token = localStorage.getItem('accessToken');
-        const res = await fetch('http://localhost:4210/api/v1/inventory/categories', {
+        const res = await fetchApi('/inventory/categories', {
           headers: {
-            'Authorization': token ? `Bearer ${token}` : '',
-            'Content-Type': 'application/json'
-          }
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+          } as any
         });
-        if (!res.ok) {
+        if (!res) {
           console.warn('Failed to load categories:', res.status);
           setCategories([]);
           return;
         }
-        const json = await res.json();
+        const json = res as any;
         const list = (json?.data?.items ?? json?.data ?? json?.items ?? []);
         const mapped = Array.isArray(list) ? list.map((c: any) => ({ id: String(c.id), name: String(c.name) })) : [];
         setCategories(mapped);
@@ -89,12 +89,11 @@ const CreateInventory = ({ onItemCreated }: { onItemCreated?: (item: InventoryFo
         return;
       }
 
-      const response = await fetch('http://localhost:4210/api/v1/inventory/inventory', {
+      await fetchApi('/inventory/inventory', {
         method: 'POST',
         headers: { 
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json' 
-        },
+        } as any,
         body: JSON.stringify({
           name: form.name,
           description: form.description,
@@ -105,11 +104,6 @@ const CreateInventory = ({ onItemCreated }: { onItemCreated?: (item: InventoryFo
           photo: form.photo
         })
       });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.status?.returnMessage || 'Failed to create inventory item');
-      }
       
       const successMsg = `Saved: ${form.name}`
         + (form.price ? ` • UGX ${parseFloat(form.price)}` : '')

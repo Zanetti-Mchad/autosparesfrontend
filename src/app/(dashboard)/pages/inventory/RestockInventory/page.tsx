@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState } from 'react';
+import { fetchApi } from '@/lib/apiConfig';
 import { PlusCircle, X } from 'lucide-react';
 
 type InventoryItem = {
@@ -39,19 +40,12 @@ const RestockInventory = () => {
           return;
         }
 
-        const response = await fetch('http://localhost:4210/api/v1/inventory/inventory', {
+        const data = await fetchApi('/inventory/inventory', {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
+          } as any
         });
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch inventory');
-        }
-
-        const data = await response.json();
         const items = (data?.data && data.data.items) ? data.data.items : (data.items ?? data.data ?? data);
         if (Array.isArray(items)) {
           setInventory(items as InventoryItem[]);
@@ -85,12 +79,11 @@ const RestockInventory = () => {
     const unitCost = purchasePrice ? parseFloat(purchasePrice) : undefined;
 
     try {
-      const response = await fetch('http://localhost:4210/api/v1/inventory/inventory/restock', {
+      const data = await fetchApi('/inventory/inventory/restock', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
+        } as any,
         body: JSON.stringify({
           inventoryId: selectedItem.id,
           userId,
@@ -101,11 +94,6 @@ const RestockInventory = () => {
           restockDate: purchaseDate
         })
       });
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data?.status?.returnMessage || 'Failed to restock');
-      }
 
       // Optimistically update list
       setInventory(inv => inv.map(item => item.id === selectedItem.id ? { ...item, quantity: (item.quantity || 0) + qty } : item));

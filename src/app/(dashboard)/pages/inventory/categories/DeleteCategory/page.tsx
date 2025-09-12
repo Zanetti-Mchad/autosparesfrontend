@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import { fetchApi } from '@/lib/apiConfig';
 
 interface Category {
   id: string;
@@ -27,19 +28,12 @@ const DeleteCategoryPage = () => {
           return;
         }
 
-        const response = await fetch('http://localhost:4210/api/v1/inventory/categories', {
+        const data = await fetchApi('/inventory/categories', {
           method: 'GET',
           headers: { 
             'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json' 
-          }
+          } as any
         });
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch categories');
-        }
-        
-        const data = await response.json();
         const categoriesData = data.data || [];
         
         setCategories(categoriesData);
@@ -83,22 +77,15 @@ const DeleteCategoryPage = () => {
 
       // Delete categories
       const deletePromises = selectedCategories.map(id => 
-        fetch(`http://localhost:4210/api/v1/inventory/categories/${id}`, { 
+        fetchApi(`/inventory/categories/${id}`, { 
           method: 'DELETE',
           headers: { 
             'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json' 
-          }
+          } as any
         })
       );
       
-      const responses = await Promise.all(deletePromises);
-      
-      // Check if any deletions failed
-      const failedDeletions = responses.filter(response => !response.ok);
-      if (failedDeletions.length > 0) {
-        throw new Error(`Failed to delete ${failedDeletions.length} categories`);
-      }
+      await Promise.all(deletePromises);
       
       setCategories(prev => prev.filter(cat => !selectedCategories.includes(cat.id)));
       setSelectedCategories([]);

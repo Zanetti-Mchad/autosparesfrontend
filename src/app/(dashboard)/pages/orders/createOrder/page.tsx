@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import { fetchApi } from '@/lib/apiConfig';
 import { PlusCircle, Package, User, Mail, Phone, MapPin, DollarSign, Hash } from 'lucide-react';
 
 interface InventoryItem {
@@ -104,23 +105,12 @@ const CreateOrder = () => {
   useEffect(() => {
     const fetchCustomers = async () => {
       try {
-        const apiBase = process.env.NODE_ENV === 'production'
-          ? 'https://backendrdjs-production.up.railway.app/api/v1'
-          : 'http://localhost:4210/api/v1';
-        const url = `${apiBase}/customers`;
         const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-        const response = await fetch(url, {
-          method: 'GET',
+        const data = await fetchApi('/customers', {
           headers: {
-            'Content-Type': 'application/json',
             ...(token ? { Authorization: `Bearer ${token}` } : {})
-          }
+          } as any
         });
-        if (!response.ok) {
-          const text = await response.text();
-          throw new Error(`Failed to fetch customers: ${response.status} ${text}`);
-        }
-        const data = await response.json();
         const items: ApiCustomer[] = (data?.data?.items || data?.items || data || []) as ApiCustomer[];
 
         const formattedCustomers: Customer[] = items.map((c) => {
@@ -174,19 +164,12 @@ const CreateOrder = () => {
     const fetchInventory = async () => {
       setIsLoading(true);
       try {
-        const apiBase = process.env.NODE_ENV === 'production'
-          ? 'https://backendrdjs-production.up.railway.app/api/v1'
-          : 'http://localhost:4210/api/v1';
         const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-        const response = await fetch(`${apiBase}/inventory/inventory`, {
-          method: 'GET',
+        const data = await fetchApi('/inventory/inventory', {
           headers: {
-            'Content-Type': 'application/json',
             ...(token ? { Authorization: `Bearer ${token}` } : {})
-          }
+          } as any
         });
-        if (!response.ok) throw new Error('Failed to fetch inventory');
-        const data = await response.json();
         const items = (data?.data?.items ?? data?.items ?? data) as any[];
         if (Array.isArray(items)) {
           const mapped: InventoryItem[] = items.map((it: any) => ({
@@ -290,9 +273,7 @@ const CreateOrder = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const apiBase = process.env.NODE_ENV === 'production'
-      ? 'https://backendrdjs-production.up.railway.app/api/v1'
-      : 'http://localhost:4210/api/v1';
+    
 
     const payload = {
       customer: {
@@ -320,19 +301,13 @@ const CreateOrder = () => {
 
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-      const res = await fetch(`${apiBase}/orders`, {
+      const created = await fetchApi('/orders', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        } as any,
         body: JSON.stringify(payload),
       });
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(`Create order failed: ${res.status} ${text}`);
-      }
-      const created = await res.json();
       console.log('Order created:', created);
       setIsSubmitted(true);
       setTimeout(() => setIsSubmitted(false), 3000);

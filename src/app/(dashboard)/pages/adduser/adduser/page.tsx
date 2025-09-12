@@ -4,6 +4,7 @@ import { User, UserPlus, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
+import { fetchApi } from '@/lib/apiConfig';
 
 // Define the user interface
 interface UserData {
@@ -108,21 +109,13 @@ const AddUser = () => {
       };
 
       // Make API call to create user
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/integration/users`, {
+      const result = await fetchApi('/integration/users', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${accessToken}`,
-        },
+        } as any,
         body: JSON.stringify(userData),
       });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Failed to create user');
-      }
-
-      const result = await response.json();
       // Expecting { status: { returnCode, returnMessage }, data }
       const createdUser = (result && result.data) ? result.data : result;
       

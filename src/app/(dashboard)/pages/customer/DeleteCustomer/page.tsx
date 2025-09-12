@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import { fetchApi } from '@/lib/apiConfig';
 import { motion } from 'framer-motion';
 import { Trash2, XCircle, ArrowLeft, User, Building, Mail, Phone, MapPin, FileText, Users, Search, Filter, Check } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -28,26 +29,7 @@ const DeleteCustomer = () => {
         setLoading(true);
         setError(null);
         
-        const apiBase = process.env.NODE_ENV === 'production' 
-          ? 'https://autosparesbackend-production.up.railway.app/api/v1'
-          : 'http://localhost:4210/api/v1';
-        const url = `${apiBase}/customers?page=1&pageSize=100`;
-        
-        console.log('=== FETCHING CUSTOMERS FOR DELETION ===');
-        console.log('API URL:', url);
-        
-        const response = await fetch(url, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch customers: ${response.statusText}`);
-        }
-
-        const data = await response.json();
+        const data = await fetchApi(`/customers?page=1&pageSize=100`, { method: 'GET' });
         console.log('Customers data:', data);
         
         if (data.status?.returnCode === 200 || data.status?.returnCode === "00" || data.status?.returnCode === 0) {
@@ -130,25 +112,9 @@ const DeleteCustomer = () => {
       setDeleting(true);
       setError(null);
 
-      const apiBase = process.env.NODE_ENV === 'production' 
-        ? 'https://autosparesbackend-production.up.railway.app/api/v1'
-        : 'http://localhost:4210/api/v1';
-
       // Delete customers one by one
       const deletePromises = Array.from(selectedCustomers).map(async (customerId) => {
-        const url = `${apiBase}/customers/${customerId}`;
-        const response = await fetch(url, {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error(`Failed to delete customer ${customerId}: ${response.statusText}`);
-        }
-
-        const data = await response.json();
+        const data = await fetchApi(`/customers/${customerId}`, { method: 'DELETE' });
         if (!(data.status?.returnCode === 200 || data.status?.returnCode === "00" || data.status?.returnCode === 0)) {
           throw new Error(data.status?.returnMessage || `Failed to delete customer ${customerId}`);
         }

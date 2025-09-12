@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useRef, useState } from 'react';
+import { fetchApi } from '@/lib/apiConfig';
 import Image from 'next/image';
 import * as XLSX from 'xlsx';
 import { Printer, Download, Edit, Save, X } from 'lucide-react';
@@ -48,19 +49,12 @@ const ViewEditInventory = () => {
           return;
         }
 
-        const response = await fetch('http://localhost:4210/api/v1/inventory/inventory', {
+        const data = await fetchApi('/inventory/inventory', {
           method: 'GET',
           headers: { 
             'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json' 
-          }
+          } as any
         });
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch inventory');
-        }
-        
-        const data = await response.json();
         console.log('API Response:', data);
         
         // Extract items from the response - data is nested under data.items
@@ -93,14 +87,12 @@ const ViewEditInventory = () => {
       try {
         setLoadingCategories(true);
         const token = localStorage.getItem('accessToken');
-        const res = await fetch('http://localhost:4210/api/v1/inventory/categories', {
+        const res = await fetchApi('/inventory/categories', {
           headers: {
-            'Authorization': token ? `Bearer ${token}` : '',
-            'Content-Type': 'application/json'
-          }
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+          } as any
         });
-        if (!res.ok) return;
-        const json = await res.json();
+        const json = res as any;
         const list = (json?.data?.items ?? json?.data ?? json?.items ?? []);
         const mapped = Array.isArray(list) ? list.map((c: any) => ({ id: String(c.id), name: String(c.name) })) : [];
         setCategories(mapped);
@@ -136,12 +128,11 @@ const ViewEditInventory = () => {
         return;
       }
 
-      const response = await fetch(`http://localhost:4210/api/v1/inventory/inventory/${id}`, {
+      await fetchApi(`/inventory/inventory/${id}`, {
         method: 'PUT',
         headers: { 
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json' 
-        },
+        } as any,
         body: JSON.stringify({
           name: editForm.name,
           description: editForm.description,
@@ -152,11 +143,6 @@ const ViewEditInventory = () => {
           photo: editForm.photo
         })
       });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.status?.returnMessage || 'Failed to update inventory item');
-      }
       
       setInventory(inv => inv.map(item => item.id === id ? { 
         ...item, 

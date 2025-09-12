@@ -1,5 +1,6 @@
 "use client";
 import React, { useState } from 'react';
+import { fetchApi } from '@/lib/apiConfig';
 
 const CreateCategoryPage = () => {
   const [categoryName, setCategoryName] = useState('');
@@ -27,22 +28,16 @@ const CreateCategoryPage = () => {
     setError('');
     
     try {
-      const response = await fetch('http://localhost:4210/api/v1/inventory/categories', {
+      await fetchApi('/inventory/categories', {
         method: 'POST',
         headers: { 
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json' 
-        },
+        } as any,
         body: JSON.stringify({
           name: categoryName.trim(),
           description: `Category for ${categoryName.trim()}`
         })
       });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.status?.returnMessage || 'Failed to create category');
-      }
       
       setSuccess('Category created successfully!');
       setCategoryName('');
