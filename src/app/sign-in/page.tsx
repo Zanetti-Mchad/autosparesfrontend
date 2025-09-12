@@ -6,7 +6,7 @@ import { Lock, Mail, ArrowLeft, Loader2, CheckCircle, Phone } from 'lucide-react
 import { sendSMS } from '@/lib/smsService';
 import { useForm } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
-import { env } from '@/env';
+import { fetchApi } from '@/lib/apiConfig';
 import dataCache from "../../utils/dataCache";
 
 type FormData = {
@@ -146,24 +146,14 @@ const Login = () => {
           [key: string]: any;
         }
 
-        const response: Response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
+        const responseData: LoginResponse = await fetchApi('/auth/login', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
           body: JSON.stringify({
             identifier: data.email,
             password: data.password
-          }),
+          })
         });
-
-        const responseData: LoginResponse = await response.json();
         console.log('Login response:', responseData);
-
-        if (!response.ok) {
-          throw new Error(responseData.status?.returnMessage || 'Login failed');
-        }
 
         // Extract tokens and user data
         const { accessToken, refreshToken, data: responseDataUser, user: userFromRoot } = responseData;
@@ -225,7 +215,7 @@ const Login = () => {
         }
 
         // Continue with redirect
-        if (responseData.status?.returnCode === "00" || response.ok) {
+        if (responseData.status?.returnCode === "00") {
           if (userData.role) {
             const roleName = userData.role.name || userData.role;
             const redirectUrl = `/${roleName.trim().toLowerCase()}`;
@@ -359,24 +349,14 @@ const Login = () => {
           identifier: otpData.identifier
         });
         
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/reset-password`, {
+        const responseData = await fetchApi('/auth/reset-password', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
           body: JSON.stringify({
             token: otpData.verifiedOtp,
             newPassword: data.newPassword,
             identifier: otpData.identifier
-          }),
+          })
         });
-
-        const responseData = await response.json();
-        
-        if (!response.ok) {
-          throw new Error(responseData.status?.returnMessage || 'Failed to reset password');
-        }
         
         if (responseData.status?.returnCode === 200) {
           // Clear all stored data related to password reset
