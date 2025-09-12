@@ -129,227 +129,74 @@ const AdminPage = () => {
         : 'http://localhost:4210/api/v1';
       const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
 
-      // Fetch orders for revenue and order count
-      const ordersResponse = await fetch(`${apiBase}/orders?page=1&limit=1000`, {
+      // Fetch dashboard stats from the dedicated endpoint
+      const statsResponse = await fetch(`${apiBase}/orders/dashboard/stats`, {
         headers: {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         }
       });
 
-      let ordersData: any[] = [];
-      if (ordersResponse.ok) {
-        const ordersResult = await ordersResponse.json();
-        ordersData = ordersResult?.data?.items ?? ordersResult?.items ?? ordersResult ?? [];
+      let dashboardData: any = {};
+      if (statsResponse.ok) {
+        const statsResult = await statsResponse.json();
+        dashboardData = statsResult?.data ?? statsResult ?? {};
       }
 
-      // Calculate revenue and order stats
-      const totalRevenue = ordersData.reduce((sum, order) => {
-        const total = toNumber(order.total ?? order.totals?.total ?? order.amount?.total ?? 0);
-        return sum + total;
-      }, 0);
+      // Use data from dashboard stats endpoint
+      const totalRevenue = dashboardData.totalRevenue ?? 0;
+      const totalOrders = dashboardData.totalOrders ?? 0;
 
-      const totalOrders = ordersData.length;
+      // Use data from dashboard stats endpoint
+      const customerCount = dashboardData.totalCustomers ?? 0;
 
-      // Fetch customers count
-      let customerCount = 0;
-      try {
-        const customersResponse = await fetch(`${apiBase}/customers/stats`, {
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          }
-        });
-        if (customersResponse.ok) {
-          const customersResult = await customersResponse.json();
-          customerCount = customersResult?.data?.total ?? 0;
-        }
-      } catch (err) {
-        console.warn('Failed to fetch customer stats:', err);
-      }
-
-      // Fetch inventory for product count and stock alerts
-      let productCount = 0;
-      let inventoryItems: InventoryItem[] = [];
-      try {
-        const inventoryResponse = await fetch(`${apiBase}/inventory/inventory`, {
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          }
-        });
-        if (inventoryResponse.ok) {
-          const inventoryResult = await inventoryResponse.json();
-          const items = inventoryResult?.data?.items ?? inventoryResult?.items ?? inventoryResult ?? [];
-          productCount = items.length;
-          inventoryItems = items.map((item: any) => ({
-            id: item.id,
-            name: item.name ?? item.productName ?? 'Unknown Product',
-            category: item.category?.name ?? item.categoryName ?? '',
-            quantity: toNumber(item.quantity ?? item.stock ?? 0),
-            minQuantity: toNumber(item.minQuantity ?? item.minStock ?? 10),
-            sellingPrice: toNumber(item.sellingPrice ?? item.price ?? 0),
-            totalSold: toNumber(item.totalSold ?? 0),
-            revenue: toNumber(item.revenue ?? 0)
-          }));
-        }
-      } catch (err) {
-        console.warn('Failed to fetch inventory:', err);
-      }
-
-      // Generate sales chart data (last 7 days)
-      const salesData: SalesChartData[] = [];
-      const today = new Date();
-      for (let i = 6; i >= 0; i--) {
-        const date = new Date(today);
-        date.setDate(date.getDate() - i);
-        const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
-        
-        // Filter orders for this day
-        const dayOrders = ordersData.filter((order: any) => {
-          const orderDate = new Date(order.date ?? order.createdAt ?? order.placedAt ?? '');
-          return orderDate.toDateString() === date.toDateString();
-        });
-        
-        const dayRevenue = dayOrders.reduce((sum, order) => {
-          return sum + toNumber(order.total ?? order.totals?.total ?? order.amount?.total ?? 0);
-        }, 0);
-        
-        salesData.push({
-          date: dayName,
-          sales: dayRevenue
-        });
-      }
-
-      // Get recent orders (last 4)
-      const recentOrdersData = ordersData
-        .sort((a, b) => new Date(b.date ?? b.createdAt ?? '').getTime() - new Date(a.date ?? a.createdAt ?? '').getTime())
-        .slice(0, 4)
-        .map((order: any) => ({
-          id: order.id,
-          orderNumber: order.orderNumber ?? order.shortId ?? order.displayId,
-          customer: order.customer?.name ?? order.customerName ?? order.clientName ?? 'Unknown',
-          email: order.customer?.email ?? order.customerEmail ?? order.email ?? '',
-          phone: order.customer?.phone ?? order.customerPhone ?? order.phone ?? '',
-          total: String(order.total ?? order.totals?.total ?? order.amount?.total ?? 0),
-          status: order.orderStatus ?? order.status ?? 'Pending',
-          paymentStatus: order.payment?.status ?? order.paymentStatus ?? 'Pending',
-          date: order.date ?? order.createdAt ?? order.placedAt ?? '',
-          items: Array.isArray(order.items) ? order.items : []
-        }));
-
-      // Get top products from consolidated API
-      console.log('🔄 Fetching top products from consolidated API...');
-      let topProductsData: InventoryItem[] = [];
+      // Use data from dashboard stats endpoint
+      const productCount = dashboardData.totalProducts ?? 0;
       
-      try {
-        const dashboardResponse = await fetch(`${apiBase}/orders/dashboard/stats`, {
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          }
-        });
-        
-        if (dashboardResponse.ok) {
-          const dashboardResult = await dashboardResponse.json();
-          console.log('📊 Dashboard API response:', dashboardResult);
-          
-          if (dashboardResult.status?.returnCode === 200 && dashboardResult.data?.topProducts) {
-            topProductsData = dashboardResult.data.topProducts.map((product: any) => ({
-              id: product.id,
-              name: product.name,
-              category: product.category,
-              quantity: product.quantity || 0,
-              minQuantity: product.minQuantity || 0,
-              sellingPrice: product.sellingPrice || 0,
-              totalSold: product.totalSold || 0,
-              revenue: product.totalRevenue || 0
-            }));
-            console.log('⭐ Top products from API:', topProductsData);
-          }
-        }
-      } catch (err) {
-        console.warn('Failed to fetch top products from dashboard API:', err);
-      }
-      
-      // Fallback to inventory items if dashboard API fails
-      if (topProductsData.length === 0) {
-        console.log('📦 Using inventory items as fallback for top products:', inventoryItems);
-        topProductsData = inventoryItems
-          .map(item => {
-            const hasRevenue = item.revenue && item.revenue > 0;
-            const hasTotalSold = item.totalSold && item.totalSold > 0;
-            console.log(`Product ${item.name}: revenue=${item.revenue}, totalSold=${item.totalSold}, sellingPrice=${item.sellingPrice}, hasRevenue=${hasRevenue}, hasTotalSold=${hasTotalSold}`);
-            
-            // If no sales data, use selling price as a proxy for "value"
-            const sortValue = hasRevenue ? item.revenue : 
-                             hasTotalSold ? ((item.totalSold ?? 0) * item.sellingPrice) : 
-                             item.sellingPrice;
-            
-            return {
-              ...item,
-              sortValue: sortValue || 0
-            };
-          })
-          .sort((a, b) => b.sortValue - a.sortValue)
-          .slice(0, 4)
-          .map(item => ({
-            id: item.id,
-            name: item.name,
-            category: item.category,
-            quantity: item.quantity,
-            minQuantity: item.minQuantity,
-            sellingPrice: item.sellingPrice,
-            totalSold: item.totalSold || 0,
-            revenue: item.revenue || 0
-          }));
-      }
+      // Get stock alerts from dashboard data
+      const stockAlertsData = dashboardData.stockAlerts?.map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        category: item.category,
+        quantity: toNumber(item.quantity),
+        minQuantity: toNumber(item.minQuantity),
+        sellingPrice: toNumber(item.sellingPrice)
+      })) ?? [];
+
+      // Use sales chart data from dashboard
+      const salesData = dashboardData.salesChartData?.map((item: any) => ({
+        date: item.date,
+        sales: toNumber(item.sales)
+      })) ?? [];
+
+      // Use recent orders data from dashboard
+      const recentOrdersData = dashboardData.recentOrders?.map((order: any) => ({
+        id: order.id,
+        orderNumber: order.orderNumber,
+        customer: order.customer,
+        email: order.email,
+        phone: order.phone,
+        total: String(order.total),
+        status: order.status,
+        paymentStatus: order.paymentStatus,
+        date: order.date,
+        items: order.items || []
+      })) ?? [];
+
+      // Use top products data from dashboard
+      const topProductsData = dashboardData.topProducts?.map((product: any) => ({
+        id: product.id,
+        name: product.name,
+        category: product.category,
+        quantity: 0, // Not provided in dashboard data
+        minQuantity: 0, // Not provided in dashboard data
+        sellingPrice: 0, // Not provided in dashboard data
+        totalSold: toNumber(product.totalSold),
+        revenue: toNumber(product.totalRevenue)
+      })) ?? [];
       
       console.log('⭐ Final top products data:', topProductsData);
 
-      // Get stock alerts from dedicated API
-      console.log('🔄 Fetching stock alerts from dedicated API...');
-      let stockAlertsData: InventoryItem[] = [];
-      
-      try {
-        const stockAlertsResponse = await fetch(`${apiBase}/inventory/stock-alerts`, {
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          }
-        });
-        
-        if (stockAlertsResponse.ok) {
-          const stockAlertsResult = await stockAlertsResponse.json();
-          console.log('📊 Stock alerts API response:', stockAlertsResult);
-          
-          if (stockAlertsResult.status?.returnCode === 200 && stockAlertsResult.data?.alerts) {
-            stockAlertsData = stockAlertsResult.data.alerts.map((alert: any) => ({
-              id: alert.id,
-              name: alert.name,
-              category: alert.category,
-              quantity: alert.quantity || 0,
-              minQuantity: alert.minStock || alert.minQuantity || 0,
-              sellingPrice: 0,
-              totalSold: 0,
-              revenue: 0
-            }));
-            console.log('⚠️ Stock alerts from API:', stockAlertsData);
-          }
-        }
-      } catch (err) {
-        console.warn('Failed to fetch stock alerts from dedicated API:', err);
-      }
-      
-      // Fallback to inventory items if stock alerts API fails
-      if (stockAlertsData.length === 0) {
-        console.log('📦 Using inventory items as fallback for stock alerts:', inventoryItems);
-        stockAlertsData = inventoryItems
-          .filter(item => item.quantity <= item.minQuantity)
-          .sort((a, b) => a.quantity - b.quantity)
-          .slice(0, 3);
-      }
-      
       console.log('⚠️ Final stock alerts data:', stockAlertsData);
 
       setDashboardStats({
@@ -357,10 +204,10 @@ const AdminPage = () => {
         totalOrders,
         totalProducts: productCount,
         totalCustomers: customerCount,
-        revenueChange: 12.5, // This would need historical data to calculate
-        ordersChange: 8.2,   // This would need historical data to calculate
-        productsChange: 0,   // This would need historical data to calculate
-        customersChange: 0   // This would need historical data to calculate
+        revenueChange: dashboardData.revenueChange || 0,
+        ordersChange: dashboardData.ordersChange || 0,
+        productsChange: dashboardData.productsChange || 0,
+        customersChange: dashboardData.customersChange || 0
       });
 
       setSalesChartData(salesData);
@@ -379,8 +226,8 @@ const AdminPage = () => {
         totalOrders: 347,
         totalProducts: 1429,
         totalCustomers: 0,
-        revenueChange: 12.5,
-        ordersChange: 8.2,
+        revenueChange: 0, // No previous data for mock
+        ordersChange: 0,  // No previous data for mock
         productsChange: 0,
         customersChange: 0
       });
@@ -459,9 +306,17 @@ const AdminPage = () => {
                   <p className="text-sm font-medium text-muted-foreground mb-2">Total Revenue</p>
                   <p className="text-3xl font-bold text-foreground">UGX {formatAmount(dashboardStats.totalRevenue)}</p>
                   <div className="flex items-center mt-3">
-                    <ArrowUpRight className="w-4 h-4 text-green-500 mr-1" />
-                    <span className="text-sm text-green-500 font-semibold">+{dashboardStats.revenueChange}%</span>
-                    <span className="text-xs text-muted-foreground ml-2">vs last month</span>
+                    {dashboardStats.totalRevenue > 0 && dashboardStats.revenueChange !== 0 ? (
+                      <>
+                        <ArrowUpRight className="w-4 h-4 text-green-500 mr-1" />
+                        <span className="text-sm text-green-500 font-semibold">
+                          {dashboardStats.revenueChange > 0 ? '+' : ''}{dashboardStats.revenueChange}%
+                        </span>
+                        <span className="text-xs text-muted-foreground ml-2">vs last month</span>
+                      </>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">No previous data</span>
+                    )}
                   </div>
                 </div>
                 <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center shadow-medium">
@@ -476,9 +331,17 @@ const AdminPage = () => {
                   <p className="text-sm font-medium text-muted-foreground mb-2">Total Orders</p>
                   <p className="text-3xl font-bold text-foreground">{dashboardStats.totalOrders.toLocaleString()}</p>
                   <div className="flex items-center mt-3">
-                    <ArrowUpRight className="w-4 h-4 text-blue-500 mr-1" />
-                    <span className="text-sm text-blue-500 font-semibold">+{dashboardStats.ordersChange}%</span>
-                    <span className="text-xs text-muted-foreground ml-2">vs last month</span>
+                    {dashboardStats.totalOrders > 0 && dashboardStats.ordersChange !== 0 ? (
+                      <>
+                        <ArrowUpRight className="w-4 h-4 text-blue-500 mr-1" />
+                        <span className="text-sm text-blue-500 font-semibold">
+                          {dashboardStats.ordersChange > 0 ? '+' : ''}{dashboardStats.ordersChange}%
+                        </span>
+                        <span className="text-xs text-muted-foreground ml-2">vs last month</span>
+                      </>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">No previous data</span>
+                    )}
                   </div>
                 </div>
                 <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-medium">
