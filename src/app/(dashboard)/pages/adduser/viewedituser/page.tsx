@@ -328,35 +328,29 @@ const UsersList = ({ editMode = false }: UsersListProps) => {
         console.log('🔄 [BULK ACTION] Deactivating user:', user.id);
       }
 
-      const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/integration/users/${user.id}`;
+      const apiUrl = `/integration/users/${user.id}`;
       console.log('🔄 [BULK ACTION] API URL for user', user.id, ':', apiUrl);
       console.log('🔄 [BULK ACTION] Update data for user', user.id, ':', updatedUser);
 
       try {
-        const response = await fetch(apiUrl, {
+        const response = await fetchApi(apiUrl, {
           method: 'PUT',
           headers: {
-            'Content-Type': 'application/json',
             'Authorization': `Bearer ${accessToken}`,
-          },
+          } as any,
           body: JSON.stringify(updatedUser),
         });
 
         console.log('🔄 [BULK ACTION] Response for user', user.id, ':', response.status, response.ok);
 
-        if (response.ok) {
-          const result = await response.json();
-          console.log('📊 [BULK ACTION] Response data for user', user.id, ':', result);
-          
-          // Update local state
-          setUsers(prevUsers => 
-            prevUsers.map(u => u.id === user.id ? updatedUser : u)
-          );
-          console.log('✅ [BULK ACTION] User', user.id, 'updated successfully in local state');
-        } else {
-          const errorData = await response.json().catch(() => ({}));
-          console.error('❌ [BULK ACTION] Error updating user', user.id, ':', errorData);
-        }
+        const result = response;
+        console.log('📊 [BULK ACTION] Response data for user', user.id, ':', result);
+        
+        // Update local state
+        setUsers(prevUsers => 
+          prevUsers.map(u => u.id === user.id ? updatedUser : u)
+        );
+        console.log('✅ [BULK ACTION] User', user.id, 'updated successfully in local state');
       } catch (error) {
         console.error('❌ [BULK ACTION] Error updating user', user.id, ':', error);
       }
@@ -702,7 +696,7 @@ const UsersList = ({ editMode = false }: UsersListProps) => {
                 throw new Error('No access token found');
               }
 
-              const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/integration/users`;
+              const apiUrl = `/integration/users`;
               console.log('🔄 [REFRESH USERS] API URL:', apiUrl);
               console.log('🔄 [REFRESH USERS] Access Token:', accessToken ? 'Present' : 'Missing');
 
