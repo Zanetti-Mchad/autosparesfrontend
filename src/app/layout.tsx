@@ -129,7 +129,7 @@ export default function RootLayout({
       const token = localStorage.getItem('accessToken');
       if (!token) return null;
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/integration/users/${userId}`, {
+      const response = await fetch(buildApiUrl(`/integration/users/${userId}`), {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -227,7 +227,7 @@ export default function RootLayout({
           return;
         }
 
-        const fetchUrl = buildApiUrl('/settings/business');
+        const fetchUrl = buildApiUrl('/settings/view');
         console.log('Layout: Fetching business settings from:', fetchUrl);
         
         const response = await fetch(fetchUrl, {

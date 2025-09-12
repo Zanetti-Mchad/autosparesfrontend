@@ -188,7 +188,7 @@ const Login = () => {
         try {
           // Only attempt to log if the endpoint exists
           if (process.env.NEXT_PUBLIC_ENABLE_LOGGING !== 'false') {
-            const logResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/logs`, {
+            const logResponse = await fetchApi('/logs', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -201,13 +201,7 @@ const Login = () => {
               })
             });
 
-            if (!logResponse.ok) {
-              // If the endpoint doesn't exist, log a warning but don't throw
-              console.warn('Logging endpoint not available (HTTP ' + logResponse.status + ')');
-            } else {
-              const logData = await logResponse.json();
-              console.log('Login log created:', logData);
-            }
+            console.log('Login log created:', logResponse);
           }
         } catch (logError) {
           console.warn('Non-critical error creating login log:', logError);
