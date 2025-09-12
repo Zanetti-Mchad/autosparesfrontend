@@ -209,15 +209,27 @@ const Login = () => {
         }
 
         // Continue with redirect
-        if (responseData.status?.returnCode === "00") {
-          if (userData.role) {
-            const roleName = userData.role.name || userData.role;
-            const redirectUrl = `/${roleName.trim().toLowerCase()}`;
-            console.log(`Role found: '${roleName}'. Redirecting to: ${redirectUrl}`);
-            window.location.href = redirectUrl;
-          } else {
-            console.log('No role found for user:');
-          }
+        const returnCode = responseData.status?.returnCode as any;
+        const isSuccess = returnCode === '00' || returnCode === 200 || returnCode === '200' || !!accessToken;
+
+        if (isSuccess) {
+          const rawRole = userData.role ? (userData.role.name || userData.role) : '';
+          const roleSlug = String(rawRole || '').trim().toLowerCase();
+
+          let redirectUrl = '/admin';
+          if (roleSlug.includes('manager')) redirectUrl = '/manager';
+          else if (roleSlug.includes('admin')) redirectUrl = '/admin';
+
+          console.log(`Login successful. Role='${rawRole}'. Redirecting to: ${redirectUrl}`);
+          try {
+            // Prefer Next.js router for client-side transition
+            const r = (typeof window !== 'undefined') ? require('next/navigation') : null;
+            if (r?.useRouter) {
+              // Best effort: use already imported router when available
+            }
+          } catch {}
+          // Use router if available, otherwise fallback to hard navigation
+          try { router.replace(redirectUrl); } catch { window.location.href = redirectUrl; }
         } else {
           setErrorMessage(responseData.status?.returnMessage || 'Login failed');
         }
