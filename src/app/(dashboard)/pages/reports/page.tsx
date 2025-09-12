@@ -255,7 +255,7 @@ const ReportsView = () => {
     } finally {
       setLoading(false);
     }
-  }, [apiBase]);
+  }, []);
 
   // Load sales using the same APIs as orders/payments page
   const loadSalesFromPayments = useCallback(async () => {
@@ -364,7 +364,7 @@ const ReportsView = () => {
     } finally {
       setLoading(false);
     }
-  }, [apiBase]);
+  }, []);
 
   useEffect(() => {
     loadOrders();
@@ -415,7 +415,7 @@ const ReportsView = () => {
     } finally {
       setLoading(false);
     }
-  }, [apiBase]);
+  }, []);
 
   useEffect(() => {
     if (selectedReport === 'inventory') {

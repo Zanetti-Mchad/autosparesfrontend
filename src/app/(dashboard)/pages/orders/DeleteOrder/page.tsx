@@ -230,7 +230,6 @@ const DeleteOrder = () => {
       const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
       
       console.log('🗑️ Deleting order:', orderId);
-      console.log('🌐 API Base:', apiBase);
       console.log('🔑 Token available:', !!token);
       
       const res = await fetchApi(`/orders/${orderId}`, {
