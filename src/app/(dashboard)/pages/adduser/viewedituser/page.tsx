@@ -435,10 +435,6 @@ const UsersList = ({ editMode = false }: UsersListProps) => {
           } as any,
         });
 
-        console.log('🔍 [FETCH USERS] Response Status:', response.status);
-        console.log('🔍 [FETCH USERS] Response OK:', response.ok);
-        console.log('🔍 [FETCH USERS] Response Headers:', Object.fromEntries(response.headers.entries()));
-
         const result = response;
         console.log('📊 [FETCH USERS] Raw API Response:', result);
         console.log('📊 [FETCH USERS] Response Type:', typeof result);
