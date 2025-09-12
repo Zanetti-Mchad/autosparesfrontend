@@ -426,6 +426,7 @@ const UsersList = ({ editMode = false }: UsersListProps) => {
         console.log('🔍 [FETCH USERS] API URL:', apiUrl);
         console.log('🔍 [FETCH USERS] Access Token:', accessToken ? 'Present' : 'Missing');
         console.log('🔍 [FETCH USERS] Full API URL will be:', `${process.env.NEXT_PUBLIC_API_URL || 'https://autosparesbackend-production.up.railway.app/api/v1'}${apiUrl}`);
+        console.log('🔍 [FETCH USERS] API_BASE_URL from config:', process.env.NEXT_PUBLIC_API_URL || 'https://autosparesbackend-production.up.railway.app/api/v1');
 
         const response = await fetchApi(apiUrl, {
           method: 'GET',

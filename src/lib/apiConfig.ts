@@ -5,8 +5,9 @@
  * for working with API endpoints.
  */
 
-// API base URL - prefer relative path so Next.js rewrites proxy to backend
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
+// API base URL - use backend URL as default
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 
+                           'https://autosparesbackend-production.up.railway.app/api/v1';
 
 // Database URL for direct connections if needed
 export const DATABASE_URL = process.env.DATABASE_URL || 
