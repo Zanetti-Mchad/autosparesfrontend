@@ -6,7 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { 
   Home, ShoppingCart, Users, Package, User, 
-  FileText, Settings, LogOut, Bell, Search
+  FileText, Settings, LogOut, Bell, Search, Quote
 } from 'lucide-react';
 
 // TypeScript interfaces
@@ -36,7 +36,7 @@ export const menuItems: MenuSection[] = [
         href: "/admin",
         isDirectLink: true
       },
-      {
+        {
         icon: ShoppingCart,
         label: "Orders",
         visible: ["admin", "user", "manager"],
@@ -46,7 +46,16 @@ export const menuItems: MenuSection[] = [
           { label: "Delete Order", visible: ["admin", "manager"], href: "/pages/orders/DeleteOrder" },
           { label: "Payments", visible: ["admin", "user", "manager"], href: "/pages/orders/payments" },
         ],
-
+      },
+      {
+        icon: Quote,
+        label: "Quotations",
+        visible: ["admin", "user", "manager"],
+        subItems: [
+          { label: "Create Quote", visible: ["admin", "user", "manager"], href: "/pages/quotation/addquote/view" },
+          { label: "View Quotes", visible: ["admin", "user", "manager"], href: "/pages/quotation/viewquote" },
+          { label: "Delete Quote", visible: ["admin", "manager"], href: "/pages/quotation/deletequote" },
+        ],
       },
       {
         icon: Users,
