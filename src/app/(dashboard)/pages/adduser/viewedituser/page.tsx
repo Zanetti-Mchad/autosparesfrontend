@@ -448,6 +448,13 @@ const UsersList = ({ editMode = false }: UsersListProps) => {
         console.log('📊 [FETCH USERS] Response Keys:', Object.keys(result));
         console.log('📊 [FETCH USERS] Full Response JSON:', JSON.stringify(result, null, 2));
         
+        // Check if this is just a status response without data
+        if (result.returnCode && result.returnMessage && !result.data && !Array.isArray(result)) {
+          console.log('⚠️ [FETCH USERS] API returned only status info, no user data');
+          console.log('⚠️ [FETCH USERS] This suggests the backend endpoint might not be returning user data');
+          console.log('⚠️ [FETCH USERS] Status:', result.returnCode, result.returnMessage);
+        }
+        
         if (result.data) {
           console.log('📊 [FETCH USERS] Data Property:', result.data);
           console.log('📊 [FETCH USERS] Data Type:', typeof result.data);
@@ -466,52 +473,25 @@ const UsersList = ({ editMode = false }: UsersListProps) => {
           }
         }
 
-        // Handle the API response structure - check multiple possible structures
+        // Handle the API response structure - use the same approach as deleteuser page
         let usersData = null;
         
-        // Check if result has data.users (nested structure)
         if (result.data && result.data.users) {
           usersData = result.data.users;
           console.log('📊 [FETCH USERS] Found users in result.data.users');
-        }
-        // Check if result has data array directly
-        else if (result.data && Array.isArray(result.data)) {
+        } else if (result.data && Array.isArray(result.data)) {
           usersData = result.data;
           console.log('📊 [FETCH USERS] Found users in result.data (array)');
-        }
-        // Check if result is an array directly
-        else if (Array.isArray(result)) {
+        } else if (Array.isArray(result)) {
           usersData = result;
           console.log('📊 [FETCH USERS] Found users in result (array)');
-        }
-        // Check if result has users property directly
-        else if (result.users) {
+        } else if (result.users) {
           usersData = result.users;
           console.log('📊 [FETCH USERS] Found users in result.users');
-        }
-        // If no users found, log the actual structure and try alternative endpoints
-        else {
+        } else {
           console.log('❌ [FETCH USERS] No users data found in response');
           console.log('📊 [FETCH USERS] Full result structure:', JSON.stringify(result, null, 2));
           console.log('📊 [FETCH USERS] Result keys:', Object.keys(result));
-          
-          // Try to fetch from alternative endpoint structure
-          console.log('🔄 [FETCH USERS] Trying alternative endpoint...');
-          try {
-            const altResponse = await fetchApi('/users', {
-              method: 'GET',
-              headers: {
-                'Authorization': `Bearer ${accessToken}`,
-              } as any,
-            });
-            console.log('🔄 [FETCH USERS] Alternative endpoint response:', altResponse);
-            if (Array.isArray(altResponse)) {
-              usersData = altResponse;
-              console.log('✅ [FETCH USERS] Found users in alternative endpoint');
-            }
-          } catch (altError) {
-            console.log('❌ [FETCH USERS] Alternative endpoint also failed:', altError);
-          }
         }
         
         console.log('📊 [FETCH USERS] Processed Users Data:', usersData);
