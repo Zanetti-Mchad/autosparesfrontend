@@ -425,6 +425,7 @@ const UsersList = ({ editMode = false }: UsersListProps) => {
         const apiUrl = `/integration/users`;
         console.log('🔍 [FETCH USERS] API URL:', apiUrl);
         console.log('🔍 [FETCH USERS] Access Token:', accessToken ? 'Present' : 'Missing');
+        console.log('🔍 [FETCH USERS] Full API URL will be:', `${process.env.NEXT_PUBLIC_API_URL || 'https://autosparesbackend-production.up.railway.app/api/v1'}${apiUrl}`);
 
         const response = await fetchApi(apiUrl, {
           method: 'GET',
@@ -443,6 +444,8 @@ const UsersList = ({ editMode = false }: UsersListProps) => {
         console.log('📊 [FETCH USERS] Is Array:', Array.isArray(result));
         console.log('📊 [FETCH USERS] Has Data Property:', 'data' in result);
         console.log('📊 [FETCH USERS] Has Status Property:', 'status' in result);
+        console.log('📊 [FETCH USERS] Response Keys:', Object.keys(result));
+        console.log('📊 [FETCH USERS] Full Response JSON:', JSON.stringify(result, null, 2));
         
         if (result.data) {
           console.log('📊 [FETCH USERS] Data Property:', result.data);
@@ -462,8 +465,54 @@ const UsersList = ({ editMode = false }: UsersListProps) => {
           }
         }
 
-        // Handle the API response structure - API returns { data: { users: [...] } }
-        const usersData = result.data?.users || result.data || result;
+        // Handle the API response structure - check multiple possible structures
+        let usersData = null;
+        
+        // Check if result has data.users (nested structure)
+        if (result.data && result.data.users) {
+          usersData = result.data.users;
+          console.log('📊 [FETCH USERS] Found users in result.data.users');
+        }
+        // Check if result has data array directly
+        else if (result.data && Array.isArray(result.data)) {
+          usersData = result.data;
+          console.log('📊 [FETCH USERS] Found users in result.data (array)');
+        }
+        // Check if result is an array directly
+        else if (Array.isArray(result)) {
+          usersData = result;
+          console.log('📊 [FETCH USERS] Found users in result (array)');
+        }
+        // Check if result has users property directly
+        else if (result.users) {
+          usersData = result.users;
+          console.log('📊 [FETCH USERS] Found users in result.users');
+        }
+        // If no users found, log the actual structure and try alternative endpoints
+        else {
+          console.log('❌ [FETCH USERS] No users data found in response');
+          console.log('📊 [FETCH USERS] Full result structure:', JSON.stringify(result, null, 2));
+          console.log('📊 [FETCH USERS] Result keys:', Object.keys(result));
+          
+          // Try to fetch from alternative endpoint structure
+          console.log('🔄 [FETCH USERS] Trying alternative endpoint...');
+          try {
+            const altResponse = await fetchApi('/users', {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${accessToken}`,
+              } as any,
+            });
+            console.log('🔄 [FETCH USERS] Alternative endpoint response:', altResponse);
+            if (Array.isArray(altResponse)) {
+              usersData = altResponse;
+              console.log('✅ [FETCH USERS] Found users in alternative endpoint');
+            }
+          } catch (altError) {
+            console.log('❌ [FETCH USERS] Alternative endpoint also failed:', altError);
+          }
+        }
+        
         console.log('📊 [FETCH USERS] Processed Users Data:', usersData);
         console.log('📊 [FETCH USERS] Processed Data Type:', typeof usersData);
         console.log('📊 [FETCH USERS] Processed Data Is Array:', Array.isArray(usersData));
@@ -491,6 +540,16 @@ const UsersList = ({ editMode = false }: UsersListProps) => {
         
         setUsers(finalUsers);
         console.log('✅ [FETCH USERS] Users set in state successfully');
+        
+        // If no users found, show a helpful message
+        if (finalUsers.length === 0) {
+          console.log('⚠️ [FETCH USERS] No users found - this might be expected if no users exist yet');
+          toast({
+            title: 'No Users Found',
+            description: 'No users were found in the system. This might be normal if no users have been created yet.',
+            variant: 'default',
+          });
+        }
       } catch (error) {
         console.error('❌ [FETCH USERS] Error loading users:', error);
         toast({
