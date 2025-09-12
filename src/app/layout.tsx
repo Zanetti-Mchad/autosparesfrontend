@@ -14,6 +14,7 @@ import {
 import Menu from '@/components/Menu';
 import { Toaster } from "react-hot-toast";
 import dynamic from "next/dynamic";
+import { buildApiUrl } from "@/lib/apiConfig";
 
 const ApiDebuggerInitializer = dynamic(
   () => import("../components/ApiDebuggerInitializer"),
@@ -22,15 +23,7 @@ const ApiDebuggerInitializer = dynamic(
 
 const inter = Inter({ subsets: ["latin"] });
 
-// API base URL - using Next.js environment variables
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4210/api/v1';
-
-// Safely join base URL and path
-const buildApiUrl = (path: string) => {
-  const base = API_BASE_URL.replace(/\/$/, '');
-  const suffix = path.startsWith('/') ? path : `/${path}`;
-  return `${base}${suffix}`;
-};
+// Using shared buildApiUrl from apiConfig ensures Railway backend is used by default
 
 // API Response interfaces
 interface ApiResponse<T = unknown> {

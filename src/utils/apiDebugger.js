@@ -26,9 +26,12 @@ export function setupApiDebugger() {
     let backendUrl;
     try {
       const env = window.env || {};
-      backendUrl = env.BACKEND_API_URL || env.NEXT_PUBLIC_BACKEND_API_URL || 'autosparesbackend-production.up.railway.app';
+      backendUrl = env.BACKEND_API_URL || env.NEXT_PUBLIC_BACKEND_API_URL || 'https://autosparesbackend-production.up.railway.app';
       
-      // Strip trailing slash if present
+      // Normalize protocol and strip trailing slash
+      if (!/^https?:\/\//i.test(backendUrl)) {
+        backendUrl = `https://${backendUrl}`;
+      }
       if (backendUrl.endsWith('/')) {
         backendUrl = backendUrl.slice(0, -1);
       }
@@ -73,9 +76,13 @@ export function setupApiDebugger() {
         wasModified = true;
       }
       
-      // Fix 2: Replace hardcoded localhost:4120 URLs with proper backend URL
+      // Fix 2: Replace hardcoded localhost URLs with proper backend URL
       if (url.includes('http://localhost:4120')) {
         modifiedUrl = url.replace('http://localhost:4120', backendUrl);
+        wasModified = true;
+      }
+      if (url.includes('http://localhost:4210')) {
+        modifiedUrl = url.replace('http://localhost:4210', backendUrl);
         wasModified = true;
       }
       
