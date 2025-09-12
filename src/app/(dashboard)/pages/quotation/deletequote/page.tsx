@@ -781,7 +781,7 @@ const DeleteQuotes = () => {
 
             <div className="space-y-2">
               <label className="text-sm font-medium">
-                Type "DELETE" to confirm:
+                Type &quot;DELETE&quot; to confirm:
               </label>
               <Input
                 value={deleteConfirmation}
