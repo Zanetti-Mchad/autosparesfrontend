@@ -99,120 +99,35 @@ const DeleteQuotes = () => {
     try {
       setIsLoading(true);
       
-      // Mock data for now - replace with actual API call
-      const mockQuotes: Quote[] = [
-        {
-          id: '1',
-          quoteNumber: 'QUO/241201/001',
-          customer: {
-            name: 'John Doe',
-            email: 'john@example.com',
-            phone: '256700000001',
-            company: 'ABC Motors',
-            address: 'Kampala Road',
-            customerCity: 'Kampala', // Changed from city
-            customerDistrict: 'Central' // Changed from district
-          },
-          items: [
-            {
-              id: '1',
-              productId: 'prod1',
-              productName: 'Brake Pads',
-              size: 'Standard',
-              quantity: 2,
-              unitPrice: 50000,
-              totalPrice: 100000,
-              description: 'High quality brake pads'
-            }
-          ],
-          subtotal: 100000,
-          vatAmount: 18000,
-          total: 118000,
-          includeVat: true,
-          vatRate: 0.18,
-          validUntil: 30,
-          notes: 'Urgent delivery required',
-          terms: 'Payment terms: 50% advance, 50% on delivery',
-          status: 'Draft',
-          createdAt: '2024-12-01T10:00:00Z',
-          updatedAt: '2024-12-01T10:00:00Z'
-        },
-        {
-          id: '2',
-          quoteNumber: 'QUO/241201/002',
-          customer: {
-            name: 'Jane Smith',
-            email: 'jane@example.com',
-            phone: '256700000002',
-            company: 'XYZ Garage',
-            address: 'Entebbe Road',
-            customerCity: 'Kampala', // Changed from city
-            customerDistrict: 'Central' // Changed from district
-          },
-          items: [
-            {
-              id: '2',
-              productId: 'prod2',
-              productName: 'Spark Plugs',
-              size: 'Standard',
-              quantity: 4,
-              unitPrice: 15000,
-              totalPrice: 60000,
-              description: 'Iridium spark plugs'
-            }
-          ],
-          subtotal: 60000,
-          vatAmount: 0,
-          total: 60000,
-          includeVat: false,
-          vatRate: 0,
-          validUntil: 15,
-          notes: '',
-          terms: 'Payment on delivery',
-          status: 'Expired',
-          createdAt: '2024-11-15T14:30:00Z',
-          updatedAt: '2024-11-15T14:30:00Z'
-        },
-        {
-          id: '3',
-          quoteNumber: 'QUO/241201/003',
-          customer: {
-            name: 'Mike Johnson',
-            email: 'mike@example.com',
-            phone: '256700000003',
-            company: 'Auto Care Ltd',
-            address: 'Ntinda Road',
-            customerCity: 'Kampala', // Changed from city
-            customerDistrict: 'Central' // Changed from district
-          },
-          items: [
-            {
-              id: '3',
-              productId: 'prod3',
-              productName: 'Air Filter',
-              size: 'Medium',
-              quantity: 2,
-              unitPrice: 30000,
-              totalPrice: 60000,
-              description: 'High performance air filter'
-            }
-          ],
-          subtotal: 60000,
-          vatAmount: 10800,
-          total: 70800,
-          includeVat: true,
-          vatRate: 0.18,
-          validUntil: 7,
-          notes: 'Customer requested urgent quote',
-          terms: 'Payment within 7 days',
-          status: 'Sent',
-          createdAt: '2024-11-25T09:15:00Z',
-          updatedAt: '2024-11-25T09:15:00Z'
-        }
-      ];
+      const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+      const data = await fetchApi('/quotes', {
+        method: 'GET', // Explicitly set method to GET
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        } as any
+      });
 
-      setQuotes(mockQuotes);
-      setFilteredQuotes(mockQuotes);
+      const fetchedData = (data?.data?.quotes || data?.items || data) as any[];
+      const fetchedQuotes: Quote[] = Array.isArray(fetchedData) ? fetchedData.map((quote: any) => ({
+        ...quote,
+        customer: {
+          name: quote.customerName || '',
+          email: quote.customerEmail || '',
+          phone: quote.customerPhone || '',
+          company: quote.customerCompany || '',
+          address: quote.customerAddress || '',
+          customerCity: quote.customerCity || '',
+          customerDistrict: quote.customerDistrict || '',
+        },
+        items: quote.items.map((item: any) => ({
+          ...item,
+          purchasePrice: item.unitPrice ? item.unitPrice.toString() : '0',
+          sellingPrice: item.unitPrice ? item.unitPrice.toString() : '0',
+        }))
+      })) : [];
+
+      setQuotes(fetchedQuotes);
+      setFilteredQuotes(fetchedQuotes);
 
     } catch (error) {
       console.error('Error fetching quotes:', error);
@@ -619,7 +534,7 @@ const DeleteQuotes = () => {
 
       {/* Quote Details Modal */}
       <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white"> {/* Added bg-white here */}
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />

@@ -108,100 +108,35 @@ const ViewQuotes = () => {
     try {
       setIsLoading(true);
       
-      // Mock data for now - replace with actual API call
-      const mockQuotes: Quote[] = [
-        {
-          id: '1',
-          quoteNumber: 'QUO/241201/001',
-          customer: {
-            name: 'John Doe',
-            email: 'john@example.com',
-            phone: '256700000001',
-            company: 'ABC Motors',
-            address: 'Kampala Road',
-            customerCity: 'Kampala', // Changed from city
-            customerDistrict: 'Central' // Changed from district
-          },
-          items: [
-            {
-              id: '1',
-              productId: 'prod1',
-              productName: 'Brake Pads',
-              size: 'Standard',
-              quantity: 2,
-              purchasePrice: '50000',
-              sellingPrice: '60000',
-              unitPrice: 60000,
-              totalPrice: 120000,
-              description: 'High quality brake pads'
-            },
-            {
-              id: '2',
-              productId: 'prod2',
-              productName: 'Oil Filter',
-              size: 'Large',
-              quantity: 1,
-              purchasePrice: '25000',
-              sellingPrice: '30000',
-              unitPrice: 30000,
-              totalPrice: 30000,
-              description: 'Premium oil filter'
-            }
-          ],
-          subtotal: 150000,
-          vatAmount: 27000,
-          total: 177000,
-          includeVat: true,
-          vatRate: 0.18,
-          validUntil: 30,
-          notes: 'Urgent delivery required',
-          terms: 'Payment terms: 50% advance, 50% on delivery',
-          status: 'Sent',
-          createdAt: new Date().toISOString(), // Use current date for valid quote
-          updatedAt: new Date().toISOString()
-        },
-        {
-          id: '2',
-          quoteNumber: 'QUO/241201/002',
-          customer: {
-            name: 'Jane Smith',
-            email: 'jane@example.com',
-            phone: '256700000002',
-            company: 'XYZ Garage',
-            address: 'Entebbe Road',
-            customerCity: 'Kampala', // Changed from city
-            customerDistrict: 'Central' // Changed from district
-          },
-          items: [
-            {
-              id: '3',
-              productId: 'prod3',
-              productName: 'Spark Plugs',
-              size: 'Standard',
-              quantity: 4,
-              purchasePrice: '15000',
-              sellingPrice: '18000',
-              unitPrice: 18000,
-              totalPrice: 72000,
-              description: 'Iridium spark plugs'
-            }
-          ],
-          subtotal: 72000,
-          vatAmount: 0,
-          total: 72000,
-          includeVat: false,
-          vatRate: 0,
-          validUntil: 15,
-          notes: '',
-          terms: 'Payment on delivery',
-          status: 'Draft',
-          createdAt: new Date(Date.now() - 86400000).toISOString(), // Use yesterday's date
-          updatedAt: new Date(Date.now() - 86400000).toISOString()
-        }
-      ];
+      const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+      const data = await fetchApi('/quotes', {
+        method: 'GET', // Explicitly set method to GET
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        } as any
+      });
 
-      setQuotes(mockQuotes);
-      setFilteredQuotes(mockQuotes);
+      const fetchedData = (data?.data?.quotes || data?.items || data) as any[];
+      const fetchedQuotes: Quote[] = Array.isArray(fetchedData) ? fetchedData.map((quote: any) => ({
+        ...quote,
+        customer: {
+          name: quote.customerName || '',
+          email: quote.customerEmail || '',
+          phone: quote.customerPhone || '',
+          company: quote.customerCompany || '',
+          address: quote.customerAddress || '',
+          customerCity: quote.customerCity || '',
+          customerDistrict: quote.customerDistrict || '',
+        },
+        // Ensure items are also correctly typed if needed, though they seem fine from the log
+        items: quote.items.map((item: any) => ({
+          ...item,
+          purchasePrice: item.unitPrice ? item.unitPrice.toString() : '0', // Assuming unitPrice from API is purchasePrice
+          sellingPrice: item.unitPrice ? item.unitPrice.toString() : '0', // Assuming unitPrice from API is sellingPrice
+        }))
+      })) : [];
+      setQuotes(fetchedQuotes);
+      setFilteredQuotes(fetchedQuotes);
 
     } catch (error) {
       console.error('Error fetching quotes:', error);
