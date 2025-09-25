@@ -69,8 +69,8 @@ interface Quote {
     phone: string;
     company?: string;
     address?: string;
-    customerCity?: string; // Changed from city
-    customerDistrict?: string; // Changed from district
+    city?: string;
+    district?: string;
   };
   items: QuoteItem[];
   subtotal: number;
@@ -119,8 +119,8 @@ const ViewQuotes = () => {
             phone: '256700000001',
             company: 'ABC Motors',
             address: 'Kampala Road',
-            customerCity: 'Kampala', // Changed from city
-            customerDistrict: 'Central' // Changed from district
+            city: 'Kampala',
+            district: 'Central'
           },
           items: [
             {
@@ -169,8 +169,8 @@ const ViewQuotes = () => {
             phone: '256700000002',
             company: 'XYZ Garage',
             address: 'Entebbe Road',
-            customerCity: 'Kampala', // Changed from city
-            customerDistrict: 'Central' // Changed from district
+            city: 'Kampala',
+            district: 'Central'
           },
           items: [
             {
@@ -436,7 +436,7 @@ const ViewQuotes = () => {
     doc.setFontSize(normalTextSize);
     doc.text(quote.customer.address || '', centerX, yPos, { align: 'center' });
     yPos += lineHeight;
-    doc.text(`${quote.customer.customerCity || ''}, ${quote.customer.customerDistrict || ''}`, centerX, yPos, { align: 'center' }); // Changed to customerCity, customerDistrict
+    doc.text(`${quote.customer.city || ''}, ${quote.customer.district || ''}`, centerX, yPos, { align: 'center' });
     yPos += lineHeight * 2;
 
     // Date, Time, Quote ID
@@ -811,18 +811,6 @@ const ViewQuotes = () => {
                         <span>{selectedQuote.customer.address}</span>
                       </div>
                     )}
-                    {selectedQuote.customer.customerCity && (
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">City:</span>
-                        <span>{selectedQuote.customer.customerCity}</span>
-                      </div>
-                    )}
-                    {selectedQuote.customer.customerDistrict && (
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">District:</span>
-                        <span>{selectedQuote.customer.customerDistrict}</span>
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
               </div>
@@ -918,7 +906,7 @@ const ViewQuotes = () => {
 
       {/* Edit Quote Modal */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white"> {/* Added bg-white here */}
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Edit className="h-5 w-5" />
@@ -988,8 +976,8 @@ const ViewQuotes = () => {
                       <label htmlFor="customerShippingCity" className="text-sm font-medium">City / Town</label>
                       <Input
                         id="customerShippingCity"
-                        name="customer.customerCity" // Changed
-                        value={editableQuote.customer.customerCity || ''} // Changed
+                        name="customer.city"
+                        value={editableQuote.customer.city || ''}
                         onChange={handleEditInputChange}
                       />
                     </div>
@@ -997,8 +985,8 @@ const ViewQuotes = () => {
                       <label htmlFor="customerShippingDistrict" className="text-sm font-medium">District</label>
                       <Input
                         id="customerShippingDistrict"
-                        name="customer.customerDistrict" // Changed
-                        value={editableQuote.customer.customerDistrict || ''} // Changed
+                        name="customer.district"
+                        value={editableQuote.customer.district || ''}
                         onChange={handleEditInputChange}
                       />
                     </div>

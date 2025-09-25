@@ -52,7 +52,7 @@ export const menuItems: MenuSection[] = [
         label: "Quotations",
         visible: ["admin", "user", "manager"],
         subItems: [
-          { label: "Create Quote", visible: ["admin", "user", "manager"], href: "/pages/quotation/addquote/view" },
+          { label: "Create Quote", visible: ["admin", "user", "manager"], href: "/pages/quotation/addquote" },
           { label: "View Quotes", visible: ["admin", "user", "manager"], href: "/pages/quotation/viewquote" },
           { label: "Delete Quote", visible: ["admin", "manager"], href: "/pages/quotation/deletequote" },
         ],

@@ -63,8 +63,8 @@ interface Quote {
     phone: string;
     company?: string;
     address?: string;
-    customerCity?: string; // Changed from city
-    customerDistrict?: string; // Changed from district
+    city?: string;
+    district?: string;
   };
   items: QuoteItem[];
   subtotal: number;
@@ -110,8 +110,8 @@ const DeleteQuotes = () => {
             phone: '256700000001',
             company: 'ABC Motors',
             address: 'Kampala Road',
-            customerCity: 'Kampala', // Changed from city
-            customerDistrict: 'Central' // Changed from district
+            city: 'Kampala',
+            district: 'Central'
           },
           items: [
             {
@@ -146,8 +146,8 @@ const DeleteQuotes = () => {
             phone: '256700000002',
             company: 'XYZ Garage',
             address: 'Entebbe Road',
-            customerCity: 'Kampala', // Changed from city
-            customerDistrict: 'Central' // Changed from district
+            city: 'Kampala',
+            district: 'Central'
           },
           items: [
             {
@@ -182,8 +182,8 @@ const DeleteQuotes = () => {
             phone: '256700000003',
             company: 'Auto Care Ltd',
             address: 'Ntinda Road',
-            customerCity: 'Kampala', // Changed from city
-            customerDistrict: 'Central' // Changed from district
+            city: 'Kampala',
+            district: 'Central'
           },
           items: [
             {

@@ -386,8 +386,8 @@ const CreateQuote = () => {
           email: customerInfo.email,
           phone: customerInfo.phone,
           address: customerInfo.address,
-          customerCity: customerInfo.shippingCity, // Changed from shippingCity
-          customerDistrict: customerInfo.shippingDistrict, // Changed from shippingDistrict
+          shippingCity: customerInfo.shippingCity,
+          shippingDistrict: customerInfo.shippingDistrict,
           company: customerInfo.company,
         },
         items: quoteItems.map(item => ({
@@ -456,7 +456,7 @@ const CreateQuote = () => {
         validUntil: 30,
         includeVat: false,
         notes: '',
-        terms: 'Payment on delivery', // Reset to 'Payment on delivery'
+        terms: 'Payment terms: 50% advance, 50% on delivery. Valid for 30 days from quote date.',
         status: 'Draft'
       });
 
