@@ -303,11 +303,18 @@ const AdminPage = () => {
       )}
 
       {loading && (
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto"></div>
-            <p className="mt-4 text-muted-foreground">Loading dashboard data...</p>
+        <div className="space-y-4 animate-pulse">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="h-20 rounded-xl bg-muted/40" />
+            ))}
           </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="h-32 rounded-2xl bg-muted/40" />
+            ))}
+          </div>
+          <p className="text-center text-sm text-muted-foreground pt-2">Loading dashboard…</p>
         </div>
       )}
 

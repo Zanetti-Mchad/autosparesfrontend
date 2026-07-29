@@ -4,6 +4,7 @@ import { getRole } from "@/lib/data";
 import { env } from "@/env";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { 
   Home, ShoppingCart, Users, Package, User, 
   FileText, Settings, LogOut, Quote, Store,
@@ -187,6 +188,7 @@ export const menuItems: MenuSection[] = [
 ];
 
 const Menu = ({ onNavigate }: { onNavigate?: () => void }) => {
+  const router = useRouter();
   const [expandedPath, setExpandedPath] = useState<string | null>(null);
   const [role, setRole] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -199,9 +201,41 @@ const Menu = ({ onNavigate }: { onNavigate?: () => void }) => {
     setIsLoading(false);
   }, []);
 
+  // Warm up routes so first click is faster (especially in next dev)
+  useEffect(() => {
+    const hrefs = new Set<string>();
+    const walk = (items: MenuItem[]) => {
+      for (const item of items) {
+        if (item.href) hrefs.add(item.href);
+        if (item.subItems) walk(item.subItems);
+      }
+    };
+    menuItems.forEach((section) => walk(section.items));
+    // Prefetch top routes after idle so it doesn't block first paint
+    const id = window.setTimeout(() => {
+      hrefs.forEach((href) => {
+        try {
+          router.prefetch(href);
+        } catch {
+          /* ignore */
+        }
+      });
+    }, 800);
+    return () => window.clearTimeout(id);
+  }, [router]);
+
   const handleNavigate = () => {
     setExpandedPath(null);
     onNavigate?.();
+  };
+
+  const prefetchHref = (href?: string) => {
+    if (!href || href === "#") return;
+    try {
+      router.prefetch(href);
+    } catch {
+      /* ignore */
+    }
   };
 
   const handleLogout = async () => {
@@ -331,9 +365,13 @@ const Menu = ({ onNavigate }: { onNavigate?: () => void }) => {
     }
 
     if (item.href && (!item.subItems || item.isDirectLink)) {
+      const href = getHref(item);
       return (
         <Link
-          href={getHref(item)}
+          href={href}
+          prefetch
+          onMouseEnter={() => prefetchHref(href)}
+          onFocus={() => prefetchHref(href)}
           onClick={handleNavigate}
           className="flex items-center gap-3 text-gray-700 md:text-gray-500 py-3 px-2 rounded-md hover:bg-primary/10 md:hover:bg-lamaSkyLight w-full text-sm md:text-base"
         >
@@ -349,6 +387,8 @@ const Menu = ({ onNavigate }: { onNavigate?: () => void }) => {
           onClick={(e) => {
             e.stopPropagation();
             toggleItem(currentPath);
+            // Prefetch children when expanding a section
+            item.subItems?.forEach((sub) => prefetchHref(sub.href));
           }}
           className="cursor-pointer text-gray-600 md:text-gray-400 hover:text-gray-800 md:hover:text-gray-600 py-3 px-2 rounded-md hover:bg-primary/10 md:hover:bg-lamaSkyLight flex items-center gap-3"
         >
@@ -421,6 +461,9 @@ const Menu = ({ onNavigate }: { onNavigate?: () => void }) => {
                   <Link
                     key={item.label}
                     href={getHref(item)}
+                    prefetch
+                    onMouseEnter={() => prefetchHref(getHref(item))}
+                    onFocus={() => prefetchHref(getHref(item))}
                     onClick={handleNavigate}
                     className="flex items-center justify-start gap-4 text-gray-500 py-2 md:px-2 rounded-md hover:bg-lamaSkyLight"
                   >
@@ -438,7 +481,9 @@ const Menu = ({ onNavigate }: { onNavigate?: () => void }) => {
                     onClick={(e) => {
                       e.stopPropagation();
                       toggleItem(item.label);
+                      item.subItems?.forEach((sub) => prefetchHref(sub.href));
                     }}
+                    onMouseEnter={() => item.subItems?.forEach((sub) => prefetchHref(sub.href))}
                     className="cursor-pointer flex items-center justify-start gap-4 text-gray-500 py-2 md:px-2 rounded-md hover:bg-lamaSkyLight"
                   >
                     {item.icon && (

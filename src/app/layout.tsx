@@ -198,27 +198,30 @@ export default function RootLayout({
     }
   };
 
-  // Get user data from localStorage and database
+  // Show local user immediately, refresh photo in background
   useEffect(() => {
     const loadUserData = async () => {
       setIsLoaded(true);
-      
+
       try {
         const userDataStr = localStorage.getItem('user');
         if (!userDataStr) {
           router.push('/sign-in');
           return;
         }
-        
-        const userData = JSON.parse(userDataStr);
-        
-        // Try to fetch fresh data from database to get photo
-        const dbUserData = await fetchUserData(userData.id);
-        
-        // Use database data if available, otherwise fall back to localStorage
-        const finalUserData = dbUserData || userData;
-        
-        setUserData(finalUserData);
+
+        const cachedUser = JSON.parse(userDataStr);
+        setUserData(cachedUser);
+
+        const dbUserData = await fetchUserData(cachedUser.id);
+        if (dbUserData) {
+          setUserData(dbUserData);
+          try {
+            localStorage.setItem('user', JSON.stringify({ ...cachedUser, ...dbUserData }));
+          } catch {
+            /* ignore quota */
+          }
+        }
       } catch (error) {
         console.error('Error loading user data:', error);
       }
