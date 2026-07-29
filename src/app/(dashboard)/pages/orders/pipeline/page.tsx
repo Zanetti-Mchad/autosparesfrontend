@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { fetchApi } from "@/lib/apiConfig";
 import toast from "react-hot-toast";
 
@@ -37,7 +37,7 @@ export default function OrderPipelinePage() {
   });
   const [products, setProducts] = useState<Array<{ id: string; name: string; price: number }>>([]);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     try {
       const qs = new URLSearchParams({ limit: "100" });
       if (filter) qs.set("status", filter);
@@ -53,11 +53,11 @@ export default function OrderPipelinePage() {
     } catch (e: any) {
       toast.error(e.message || "Failed to load orders");
     }
-  };
+  }, [filter, sourceFilter]);
 
   useEffect(() => {
     load();
-  }, [filter, sourceFilter]);
+  }, [load]);
 
   const counts = useMemo(() => {
     return PIPELINE.map((s) => ({ status: s, count: pipeline[s] || 0 }));

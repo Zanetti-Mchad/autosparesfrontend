@@ -52,7 +52,7 @@ const emptyForm = (): InventoryForm => ({
   minStock: '10',
 });
 
-const CreateInventory = ({ onItemCreated }: { onItemCreated?: (item: InventoryForm) => void }) => {
+const CreateInventory = () => {
   const [form, setForm] = useState<InventoryForm>(emptyForm());
   const [photoPreview, setPhotoPreview] = useState('');
   const [success, setSuccess] = useState('');
@@ -129,7 +129,6 @@ const CreateInventory = ({ onItemCreated }: { onItemCreated?: (item: InventoryFo
       });
 
       setSuccess(`Saved: ${form.name}`);
-      if (onItemCreated) onItemCreated(form);
       setTimeout(() => setSuccess(''), 3000);
       setForm(emptyForm());
       setPhotoPreview('');
