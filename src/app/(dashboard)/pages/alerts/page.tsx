@@ -123,9 +123,12 @@ export default function AlertsReportsPage() {
       <div className="space-y-2">
         <h2 className="font-semibold">Active alerts ({alerts.length})</h2>
         {alerts.slice(0, 40).map((a, i) => (
-          <div key={`${a.refId}-${i}`} className={`border rounded-lg px-3 py-2 text-sm ${severityColor(a.severity)}`}>
-            <span className="font-medium uppercase text-[10px] mr-2">{a.type}</span>
-            {a.message}
+          <div key={`${a.refId}-${i}`} className={`border rounded-lg px-3 py-2 text-sm flex gap-2 ${severityColor(a.severity)}`}>
+            <span className="font-semibold text-gray-400 shrink-0 w-6">{i + 1}.</span>
+            <div>
+              <span className="font-medium uppercase text-[10px] mr-2">{a.type}</span>
+              {a.message}
+            </div>
           </div>
         ))}
         {!alerts.length && <p className="text-sm text-gray-400">No alerts right now</p>}

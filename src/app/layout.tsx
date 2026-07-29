@@ -1,7 +1,7 @@
 "use client";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -9,7 +9,7 @@ import {
   Search, User, Settings, LogOut, Package, 
   Users, FileText, Bell, ShoppingCart,
   Home, Zap, ChevronRight, ChevronDown,
-  Phone, ExternalLink, Mail
+  Phone, ExternalLink, Mail, AlertTriangle
 } from 'lucide-react';
 import Menu from '@/components/Menu';
 import { Toaster } from "react-hot-toast";
@@ -128,11 +128,21 @@ export default function RootLayout({
   const [searchResults, setSearchResults] = useState<Array<{name: string, path: string, icon: React.ElementType}>>([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [stockAlertsCount, setStockAlertsCount] = useState(0);
+  const [navAlerts, setNavAlerts] = useState<Array<{
+    type: string;
+    severity: string;
+    message: string;
+    refId?: string;
+    meta?: { name?: string; quantity?: number; minStock?: number; sku?: string };
+  }>>([]);
+  const [showAlertsPanel, setShowAlertsPanel] = useState(false);
+  const [alertsLoading, setAlertsLoading] = useState(false);
+  const alertsPanelRef = useRef<HTMLDivElement>(null);
 
   // Close mobile drawer after navigation on small screens
   useEffect(() => {
     setIsMobileMenuOpen(false);
+    setShowAlertsPanel(false);
   }, [pathname]);
 
   // Function to fetch user data from database
@@ -158,45 +168,58 @@ export default function RootLayout({
     return null;
   };
 
-  // Function to fetch stock alerts count
-  const fetchStockAlertsCount = async () => {
+  // Live stock alerts — stay until quantity is raised above minStock (restock)
+  const fetchNavAlerts = useCallback(async () => {
     try {
       const token = localStorage.getItem('accessToken');
       if (!token) return;
+      setAlertsLoading(true);
 
-      console.log('🔄 Layout: Fetching stock alerts count...');
-      const response = await fetch(buildApiUrl('/inventory/stock-alerts'), {
+      const response = await fetch(buildApiUrl('/reports/alerts'), {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       });
 
-      console.log('📊 Layout: Stock alerts response status:', response.status);
-      
-      if (response.ok) {
-        const result = await response.json();
-        console.log('📊 Layout: Stock alerts API response:', result);
-        
-        if (result.status?.returnCode === 200 && result.data?.totalAlerts !== undefined) {
-          console.log('✅ Layout: Using totalAlerts:', result.data.totalAlerts);
-          setStockAlertsCount(result.data.totalAlerts);
-        } else if (result.data?.alerts) {
-          console.log('✅ Layout: Using alerts array length:', result.data.alerts.length);
-          setStockAlertsCount(result.data.alerts.length);
+      if (!response.ok) {
+        // Fallback to inventory stock-alerts only
+        const stockRes = await fetch(buildApiUrl('/inventory/stock-alerts'), {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        if (stockRes.ok) {
+          const stockJson = await stockRes.json();
+          const list = (stockJson.data?.alerts || []).map((a: any) => ({
+            type: 'low_stock',
+            severity: a.quantity <= 0 ? 'high' : 'medium',
+            message: `${a.name} is low (${a.quantity} left${a.minQuantity != null ? `, min ${a.minQuantity}` : ''})`,
+            refId: a.id,
+            meta: { name: a.name, quantity: a.quantity, minStock: a.minQuantity },
+          }));
+          setNavAlerts(list);
         } else {
-          console.log('⚠️ Layout: No stock alerts data found, setting count to 0');
-          setStockAlertsCount(0);
+          setNavAlerts([]);
         }
-      } else {
-        console.log('❌ Layout: Stock alerts API failed:', response.status);
-        setStockAlertsCount(0);
+        return;
       }
+
+      const result = await response.json();
+      const all = Array.isArray(result.data?.alerts) ? result.data.alerts : [];
+      // Navbar focuses on stock/expiry — these only clear when stock is restocked / product renewed
+      const stockAlerts = all.filter((a: { type: string }) =>
+        ['low_stock', 'expired', 'expiring'].includes(a.type)
+      );
+      setNavAlerts(stockAlerts);
     } catch (error) {
-      console.error('❌ Layout: Error fetching stock alerts count:', error);
-      setStockAlertsCount(0);
+      console.error('Error fetching nav alerts:', error);
+      setNavAlerts([]);
+    } finally {
+      setAlertsLoading(false);
     }
-  };
+  }, []);
 
   // Show local user immediately, refresh photo in background
   useEffect(() => {
@@ -294,10 +317,35 @@ export default function RootLayout({
     fetchBusinessSettings();
   }, []);
 
-  // Fetch stock alerts count on component mount
+  // Refresh stock alerts on load, route change, and every 60s (clears only after restock)
   useEffect(() => {
-    fetchStockAlertsCount();
-  }, []);
+    fetchNavAlerts();
+    const id = window.setInterval(fetchNavAlerts, 60000);
+    return () => window.clearInterval(id);
+  }, [fetchNavAlerts, pathname]);
+
+  // Close alerts panel when clicking outside
+  useEffect(() => {
+    if (!showAlertsPanel) return;
+    const onDocClick = (e: MouseEvent) => {
+      if (alertsPanelRef.current && !alertsPanelRef.current.contains(e.target as Node)) {
+        setShowAlertsPanel(false);
+      }
+    };
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, [showAlertsPanel]);
+
+  const stockAlertsCount = navAlerts.length;
+
+  const alertTypeLabel = (type: string) => {
+    switch (type) {
+      case 'low_stock': return 'Low stock';
+      case 'expired': return 'Expired';
+      case 'expiring': return 'Expiring soon';
+      default: return type.replace(/_/g, ' ');
+    }
+  };
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     const term = e.target.value;
@@ -453,18 +501,108 @@ export default function RootLayout({
               </div>
               
               <div className="flex items-center space-x-4">
-                <button 
-                  className="relative p-3 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all duration-200 group"
-                  onClick={() => router.push('/admin')}
-                  title={`${stockAlertsCount} stock alerts`}
-                >
-                  <Bell className="w-5 h-5" />
-                  {stockAlertsCount > 0 && (
-                    <div className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs rounded-full flex items-center justify-center animate-pulse">
-                      {stockAlertsCount}
+                <div className="relative" ref={alertsPanelRef}>
+                  <button 
+                    type="button"
+                    className="relative p-3 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all duration-200"
+                    onClick={() => {
+                      const next = !showAlertsPanel;
+                      setShowAlertsPanel(next);
+                      if (next) fetchNavAlerts();
+                    }}
+                    title={stockAlertsCount > 0 ? `${stockAlertsCount} stock alert(s)` : 'No stock alerts'}
+                    aria-label="Stock alerts"
+                  >
+                    <Bell className="w-5 h-5" />
+                    {stockAlertsCount > 0 && (
+                      <div className="absolute -top-1 -right-1 min-w-5 h-5 px-1 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs rounded-full flex items-center justify-center animate-pulse">
+                        {stockAlertsCount > 99 ? '99+' : stockAlertsCount}
+                      </div>
+                    )}
+                  </button>
+
+                  {showAlertsPanel && (
+                    <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-xl border border-gray-200 shadow-xl z-50 overflow-hidden">
+                      <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between bg-gray-50">
+                        <div>
+                          <p className="text-sm font-semibold text-gray-800">Stock alerts</p>
+                          <p className="text-[11px] text-gray-500">Clears only after you restock</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => fetchNavAlerts()}
+                          className="text-xs text-blue-600 hover:underline"
+                        >
+                          Refresh
+                        </button>
+                      </div>
+
+                      <div className="max-h-80 overflow-y-auto">
+                        {alertsLoading && !navAlerts.length ? (
+                          <p className="p-4 text-sm text-gray-500">Loading alerts…</p>
+                        ) : !navAlerts.length ? (
+                          <div className="p-6 text-center text-sm text-gray-500">
+                            <Package className="w-8 h-8 mx-auto mb-2 text-emerald-500" />
+                            No low-stock alerts. Inventory looks fine.
+                          </div>
+                        ) : (
+                          <ul className="divide-y divide-gray-100">
+                            {navAlerts.map((alert, idx) => (
+                              <li key={`${alert.refId || alert.message}-${idx}`}>
+                                <button
+                                  type="button"
+                                  className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors"
+                                  onClick={() => {
+                                    setShowAlertsPanel(false);
+                                    router.push(
+                                      alert.refId
+                                        ? `/pages/inventory/RestockInventory`
+                                        : '/pages/alerts'
+                                    );
+                                  }}
+                                >
+                                  <div className="flex gap-3">
+                                    <div className={`mt-0.5 w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                                      alert.severity === 'high'
+                                        ? 'bg-red-100 text-red-600'
+                                        : 'bg-amber-100 text-amber-700'
+                                    }`}>
+                                      <AlertTriangle className="w-4 h-4" />
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <p className="text-[10px] uppercase tracking-wide font-semibold text-gray-500">
+                                        {alertTypeLabel(alert.type)}
+                                      </p>
+                                      <p className="text-sm text-gray-800 font-medium leading-snug">
+                                        {alert.message}
+                                      </p>
+                                      {alert.meta?.minStock != null && (
+                                        <p className="text-xs text-gray-500 mt-0.5">
+                                          Min stock: {alert.meta.minStock}
+                                          {alert.meta.sku ? ` · SKU ${alert.meta.sku}` : ''}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+
+                      <div className="px-4 py-2 border-t border-gray-100 bg-gray-50">
+                        <Link
+                          href="/pages/alerts"
+                          className="text-xs text-blue-600 hover:underline"
+                          onClick={() => setShowAlertsPanel(false)}
+                        >
+                          View all alerts →
+                        </Link>
+                      </div>
                     </div>
                   )}
-                </button>
+                </div>
                 
                 <div className="relative group">
                   <button className="flex items-center space-x-3 bg-gray-50 border border-gray-200 rounded-2xl p-2 pr-3 hover:bg-gray-100 hover:shadow-md transition-all duration-300 outline-none focus:outline-none">

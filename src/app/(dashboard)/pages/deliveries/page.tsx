@@ -187,12 +187,27 @@ export default function DeliveriesPage() {
       </form>
 
       <div className="space-y-3">
-        {deliveries.map((d) => (
+        {deliveries.map((d, index) => {
+          const isDone = d.status === "Delivered";
+          const isCancelled = d.status === "Cancelled";
+          const locked = isDone || isCancelled;
+          return (
           <div key={d.id} className="border rounded-xl p-4 bg-white flex flex-col md:flex-row md:items-center gap-3 justify-between">
-            <div>
+            <div className="flex gap-3">
+              <span className="text-sm font-semibold text-gray-400 w-6 shrink-0 pt-0.5">{index + 1}.</span>
+              <div>
               <div className="font-semibold">
                 {d.deliveryNumber}{" "}
-                <span className="text-xs font-normal px-2 py-0.5 rounded bg-gray-100">{d.status}</span>
+                <span className={`text-xs font-normal px-2 py-0.5 rounded ${
+                  isDone ? "bg-emerald-100 text-emerald-800" :
+                  isCancelled ? "bg-red-100 text-red-700" :
+                  "bg-gray-100"
+                }`}>
+                  {d.status}
+                </span>
+                {locked && !isDone && (
+                  <span className="ml-2 text-[10px] uppercase tracking-wide text-gray-400">Cancelled</span>
+                )}
               </div>
               <div className="text-sm text-gray-600">
                 {d.customerName || "—"} · {d.route || "No route"} · Driver {d.driverName || "unassigned"}
@@ -204,9 +219,10 @@ export default function DeliveriesPage() {
               {d.customerSignature && (
                 <div className="text-xs text-emerald-700 mt-1">Signed: {d.customerSignature}</div>
               )}
+              </div>
             </div>
             <div className="flex flex-wrap gap-2">
-              {STATUSES.filter((s) => s !== d.status).map((s) => (
+              {!locked && STATUSES.filter((s) => s !== d.status).map((s) => (
                 <button
                   key={s}
                   onClick={() => setStatus(d.id, s)}
@@ -215,18 +231,29 @@ export default function DeliveriesPage() {
                   {s}
                 </button>
               ))}
-              <button
-                onClick={() => {
-                  setSignId(d.id);
-                  setSignature("");
-                }}
-                className="text-xs bg-emerald-600 text-white rounded px-2 py-1"
-              >
-                Sign / Deliver
-              </button>
+              {!locked && (
+                <button
+                  onClick={() => {
+                    setSignId(d.id);
+                    setSignature("");
+                  }}
+                  className="text-xs bg-emerald-600 text-white rounded px-2 py-1"
+                >
+                  Sign / Deliver
+                </button>
+              )}
+              {isDone && (
+                <span className="text-xs text-emerald-700 self-center">Completed</span>
+              )}
             </div>
           </div>
-        ))}
+          );
+        })}
+        {!deliveries.length && (
+          <p className="text-sm text-gray-500 border rounded-xl p-6 bg-white text-center">
+            No deliveries yet. Create a delivery note above — it is saved to the database.
+          </p>
+        )}
       </div>
 
       {signId && (

@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { 
   Home, ShoppingCart, Users, Package, User, 
   FileText, Settings, LogOut, Quote, Store,
-  Truck, Wallet, Landmark, Factory, MapPinned, Bell
+  Truck, Wallet, Landmark, Factory, MapPinned, Bell, ChevronRight
 } from 'lucide-react';
 
 // TypeScript interfaces
@@ -25,6 +25,51 @@ interface MenuSection {
   title: string;
   items: MenuItem[];
 }
+
+const ICON_STYLES: Record<string, { wrap: string; icon: string }> = {
+  Dashboard: { wrap: "bg-blue-100", icon: "text-blue-600" },
+  POS: { wrap: "bg-emerald-100", icon: "text-emerald-600" },
+  Orders: { wrap: "bg-orange-100", icon: "text-orange-600" },
+  Production: { wrap: "bg-violet-100", icon: "text-violet-600" },
+  Deliveries: { wrap: "bg-cyan-100", icon: "text-cyan-600" },
+  Quotations: { wrap: "bg-indigo-100", icon: "text-indigo-600" },
+  Customers: { wrap: "bg-pink-100", icon: "text-pink-600" },
+  Inventory: { wrap: "bg-amber-100", icon: "text-amber-600" },
+  Suppliers: { wrap: "bg-teal-100", icon: "text-teal-600" },
+  Purchases: { wrap: "bg-sky-100", icon: "text-sky-600" },
+  Expenses: { wrap: "bg-rose-100", icon: "text-rose-600" },
+  Users: { wrap: "bg-fuchsia-100", icon: "text-fuchsia-600" },
+  Reports: { wrap: "bg-lime-100", icon: "text-lime-700" },
+  Alerts: { wrap: "bg-red-100", icon: "text-red-600" },
+  Profile: { wrap: "bg-slate-100", icon: "text-slate-600" },
+  Settings: { wrap: "bg-gray-100", icon: "text-gray-700" },
+  Logout: { wrap: "bg-red-100", icon: "text-red-500" },
+};
+
+const menuBtnClass =
+  "group flex items-center gap-3 w-full text-left text-gray-700 py-3 px-3 my-0.5 rounded-xl " +
+  "transition-all duration-200 ease-out " +
+  "hover:bg-blue-50 hover:shadow-sm hover:translate-x-0.5 " +
+  "active:scale-[0.97] active:bg-blue-100/80 " +
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/40";
+
+const ColoredIcon = ({
+  icon: Icon,
+  label,
+}: {
+  icon?: React.ElementType;
+  label: string;
+}) => {
+  if (!Icon) return null;
+  const style = ICON_STYLES[label] || { wrap: "bg-blue-50", icon: "text-blue-500" };
+  return (
+    <span
+      className={`inline-flex items-center justify-center w-9 h-9 rounded-xl flex-shrink-0 transition-transform duration-200 group-hover:scale-110 group-active:scale-95 ${style.wrap}`}
+    >
+      <Icon className={`w-5 h-5 ${style.icon}`} strokeWidth={2.25} />
+    </span>
+  );
+};
 
 // Mwima Eliken Poultry Farm menu
 export const menuItems: MenuSection[] = [
@@ -373,10 +418,10 @@ const Menu = ({ onNavigate }: { onNavigate?: () => void }) => {
           onMouseEnter={() => prefetchHref(href)}
           onFocus={() => prefetchHref(href)}
           onClick={handleNavigate}
-          className="flex items-center gap-3 text-gray-700 md:text-gray-500 py-3 px-2 rounded-md hover:bg-primary/10 md:hover:bg-lamaSkyLight w-full text-sm md:text-base"
+          className={menuBtnClass}
         >
-          {item.icon && <item.icon className="w-5 h-5 flex-shrink-0 text-gray-600 md:text-gray-500" />}
-          <span className="block truncate">{item.label}</span>
+          <ColoredIcon icon={item.icon} label={item.label} />
+          <span className="block truncate font-medium text-sm">{item.label}</span>
         </Link>
       );
     }
@@ -387,17 +432,21 @@ const Menu = ({ onNavigate }: { onNavigate?: () => void }) => {
           onClick={(e) => {
             e.stopPropagation();
             toggleItem(currentPath);
-            // Prefetch children when expanding a section
             item.subItems?.forEach((sub) => prefetchHref(sub.href));
           }}
-          className="cursor-pointer text-gray-600 md:text-gray-400 hover:text-gray-800 md:hover:text-gray-600 py-3 px-2 rounded-md hover:bg-primary/10 md:hover:bg-lamaSkyLight flex items-center gap-3"
+          className={`${menuBtnClass} cursor-pointer`}
         >
-          {item.icon && <item.icon className="w-5 h-5 flex-shrink-0 text-gray-600 md:text-gray-400" />}
-          <span className="block text-sm md:text-base">{item.label}</span>
+          <ColoredIcon icon={item.icon} label={item.label} />
+          <span className="block font-medium text-sm flex-1">{item.label}</span>
+          <ChevronRight
+            className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
+              isExpanded(currentPath) ? "rotate-90" : ""
+            }`}
+          />
         </div>
 
         {item.subItems && isExpanded(currentPath) && (
-          <ul className="pl-6 mt-2 border-l border-gray-300 md:border-gray-200 space-y-1">
+          <ul className="ml-4 pl-3 mt-1 mb-2 border-l-2 border-blue-100 space-y-0.5 animate-in fade-in slide-in-from-top-1 duration-200">
             {item.subItems.map((subItem: MenuItem, index: number) => {
               if (!isItemVisible(subItem)) {
                 return null;
@@ -427,11 +476,11 @@ const Menu = ({ onNavigate }: { onNavigate?: () => void }) => {
   }
 
   return (
-    <div className="mt-4 text-sm flex flex-col h-full overflow-y-auto">
-      <div className="flex-grow">
+    <div className="mt-2 text-sm flex flex-col h-full overflow-y-auto px-1">
+      <div className="flex-grow space-y-1">
         {(menuItems as MenuSection[]).map((section) => (
-          <div className="flex flex-col gap-2" key={section.title}>
-            <span className="block text-gray-400 font-light my-4">
+          <div className="flex flex-col gap-1" key={section.title}>
+            <span className="block text-gray-400 font-medium text-[11px] uppercase tracking-wider my-3 px-3">
               {section.title}
             </span>
 
@@ -441,18 +490,15 @@ const Menu = ({ onNavigate }: { onNavigate?: () => void }) => {
               }
 
               if (item.href && (!item.subItems || item.isDirectLink)) {
-                // Special handling for logout button
                 if (item.label === "Logout") {
                   return (
                     <button
                       key={item.label}
                       onClick={() => setShowLogoutDialog(true)}
-                      className="flex items-center justify-start gap-4 text-gray-500 py-2 md:px-2 rounded-md hover:bg-lamaSkyLight w-full"
+                      className={menuBtnClass}
                     >
-                      {item.icon && (
-                        <item.icon className="w-5 h-5" />
-                      )}
-                      <span className="block">{item.label}</span>
+                      <ColoredIcon icon={item.icon} label={item.label} />
+                      <span className="block font-medium text-sm">{item.label}</span>
                     </button>
                   );
                 }
@@ -465,12 +511,10 @@ const Menu = ({ onNavigate }: { onNavigate?: () => void }) => {
                     onMouseEnter={() => prefetchHref(getHref(item))}
                     onFocus={() => prefetchHref(getHref(item))}
                     onClick={handleNavigate}
-                    className="flex items-center justify-start gap-4 text-gray-500 py-2 md:px-2 rounded-md hover:bg-lamaSkyLight"
+                    className={menuBtnClass}
                   >
-                    {item.icon && (
-                      <item.icon className="w-5 h-5" />
-                    )}
-                    <span className="block">{item.label}</span>
+                    <ColoredIcon icon={item.icon} label={item.label} />
+                    <span className="block font-medium text-sm">{item.label}</span>
                   </Link>
                 );
               }
@@ -484,16 +528,19 @@ const Menu = ({ onNavigate }: { onNavigate?: () => void }) => {
                       item.subItems?.forEach((sub) => prefetchHref(sub.href));
                     }}
                     onMouseEnter={() => item.subItems?.forEach((sub) => prefetchHref(sub.href))}
-                    className="cursor-pointer flex items-center justify-start gap-4 text-gray-500 py-2 md:px-2 rounded-md hover:bg-lamaSkyLight"
+                    className={`${menuBtnClass} cursor-pointer`}
                   >
-                    {item.icon && (
-                      <item.icon className="w-5 h-5" />
-                    )}
-                    <span className="block">{item.label}</span>
+                    <ColoredIcon icon={item.icon} label={item.label} />
+                    <span className="block font-medium text-sm flex-1">{item.label}</span>
+                    <ChevronRight
+                      className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
+                        isExpanded(item.label) ? "rotate-90" : ""
+                      }`}
+                    />
                   </div>
 
                   {item.subItems && isExpanded(item.label) && (
-                    <div className="mt-2 pl-6">
+                    <div className="ml-4 pl-3 mt-1 mb-2 border-l-2 border-blue-100 space-y-0.5">
                       {item.subItems.map((subItem: MenuItem, index: number) => {
                         if (!isItemVisible(subItem)) {
                           return null;
