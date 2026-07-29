@@ -3,8 +3,27 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { fetchApi, buildApiUrl } from '@/lib/apiConfig';
 import { 
   FileText, Download, Calendar, Filter, Search, BarChart3, 
-  TrendingUp, DollarSign, Users, Package, Check
+  TrendingUp, DollarSign, Users, Package, Check, Wallet
 } from 'lucide-react';
+
+type PnlReport = {
+  period?: { from?: string; to?: string };
+  revenue?: number;
+  cogs?: number;
+  expenses?: number;
+  grossProfit?: number;
+  netProfit?: number;
+  profitMargin?: number;
+  cashInHand?: number;
+  todaySales?: number;
+  weeklyRevenue?: number;
+  monthlyRevenue?: number;
+  monthlyExpenses?: number;
+  outstandingBalances?: number;
+  customersWithBalance?: number;
+  bestSellers?: Array<{ name: string; qty: number; revenue: number }>;
+  expenseByCategory?: Record<string, number>;
+};
 
 const ReportsView = () => {
   const [selectedReport, setSelectedReport] = useState('customers');
@@ -12,6 +31,7 @@ const ReportsView = () => {
   const [isLoaded, setIsLoaded] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pnl, setPnl] = useState<PnlReport | null>(null);
 
   const [orders, setOrders] = useState<Array<{
     id: string;
@@ -169,6 +189,89 @@ const ReportsView = () => {
       it.quantity ?? '',
     ]);
     downloadCSV(`inventory_list_${todayStr()}.csv`, ['#','Name','Price','Category','Size','Stock'], rows);
+  };
+
+  const rangeToFromTo = useCallback(() => {
+    const to = new Date();
+    const from = new Date();
+    switch (dateRange) {
+      case '7d':
+        from.setDate(to.getDate() - 6);
+        break;
+      case '90d':
+        from.setDate(to.getDate() - 89);
+        break;
+      case '1y':
+        from.setFullYear(to.getFullYear() - 1);
+        break;
+      case '30d':
+      default:
+        from.setDate(to.getDate() - 29);
+    }
+    from.setHours(0, 0, 0, 0);
+    return {
+      from: from.toISOString().slice(0, 10),
+      to: to.toISOString().slice(0, 10),
+    };
+  }, [dateRange]);
+
+  const loadPnl = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const { from, to } = rangeToFromTo();
+      const result = await fetchApi(`/reports/pnl?from=${from}&to=${to}`);
+      setPnl(result?.data ?? null);
+    } catch (e: any) {
+      console.error('[Reports] P&L load error:', e);
+      setError(e?.message || 'Failed to load P&L report');
+      setPnl(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [rangeToFromTo]);
+
+  const handleExportPnl = () => {
+    if (!pnl) return;
+    const headers = ['Metric', 'Amount (UGX)'];
+    const rows = [
+      ["Today's Sales", pnl.todaySales ?? 0],
+      ['Period Revenue', pnl.revenue ?? 0],
+      ['COGS', pnl.cogs ?? 0],
+      ['Gross Profit', pnl.grossProfit ?? 0],
+      ['Expenses (period)', pnl.expenses ?? 0],
+      ['Net Profit', pnl.netProfit ?? 0],
+      ['Profit Margin %', pnl.profitMargin ?? 0],
+      ['Cash In', pnl.cashInHand ?? 0],
+      ['Balances Due', pnl.outstandingBalances ?? 0],
+    ];
+    downloadCSV(`pnl_summary_${todayStr()}.csv`, headers, rows);
+  };
+
+  const printPnl = () => {
+    if (!pnl) return;
+    const w = window.open('', '_blank');
+    if (!w) return;
+    const periodFrom = pnl.period?.from ? new Date(pnl.period.from).toLocaleDateString() : '—';
+    const periodTo = pnl.period?.to ? new Date(pnl.period.to).toLocaleDateString() : '—';
+    w.document.write(`
+      <html><head><title>Mwima P&L Summary</title></head>
+      <body style="font-family:sans-serif;padding:24px;max-width:640px">
+      <h1>Mwima Eliken Poultry Farm</h1>
+      <h2>Profit &amp; Loss Summary</h2>
+      <p style="color:#666">Period: ${periodFrom} – ${periodTo}</p>
+      <table style="width:100%;border-collapse:collapse;margin-top:16px">
+        <tr><td style="padding:8px;border-bottom:1px solid #eee">Today's Sales</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right"><strong>UGX ${Number(pnl.todaySales||0).toLocaleString()}</strong></td></tr>
+        <tr><td style="padding:8px;border-bottom:1px solid #eee">Gross Profit</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right">UGX ${Number(pnl.grossProfit||0).toLocaleString()}</td></tr>
+        <tr><td style="padding:8px;border-bottom:1px solid #eee">Net Profit</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right"><strong>UGX ${Number(pnl.netProfit||0).toLocaleString()}</strong> (${pnl.profitMargin ?? 0}% margin)</td></tr>
+        <tr><td style="padding:8px;border-bottom:1px solid #eee">Expenses (period)</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right">UGX ${Number(pnl.expenses||0).toLocaleString()}</td></tr>
+        <tr><td style="padding:8px;border-bottom:1px solid #eee">Cash In</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right">UGX ${Number(pnl.cashInHand||0).toLocaleString()}</td></tr>
+        <tr><td style="padding:8px">Balances Due</td><td style="padding:8px;text-align:right">UGX ${Number(pnl.outstandingBalances||0).toLocaleString()}</td></tr>
+      </table>
+      </body></html>
+    `);
+    w.document.close();
+    w.print();
   };
 
   // Load dashboard stats (summary)
@@ -423,6 +526,12 @@ const ReportsView = () => {
     }
   }, [selectedReport, loadInventory]);
 
+  useEffect(() => {
+    if (selectedReport === 'pnl') {
+      loadPnl();
+    }
+  }, [selectedReport, dateRange, loadPnl]);
+
   const filteredOrders = useMemo(() => {
     let list = orders;
     if (orderQuery.trim()) {
@@ -443,6 +552,7 @@ const ReportsView = () => {
   const reportTypes = [
     { id: 'customers', name: 'Order Report', icon: FileText, description: 'Filter by order and date range' },
     { id: 'sales', name: 'Sales Report', icon: DollarSign, description: 'Revenue and sales performance' },
+    { id: 'pnl', name: 'P&L Summary', icon: Wallet, description: 'Sales, profit, expenses & cash' },
     { id: 'inventory', name: 'Inventory Report', icon: Package, description: 'Stock levels and movements' },
   ];
 
@@ -571,6 +681,22 @@ const ReportsView = () => {
         </div>
       );
     }
+    if (selectedReport === 'pnl') {
+      return (
+        <div className="p-6 border-b border-border/50">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xl font-semibold text-foreground">P&amp;L Summary</h3>
+            <div className="flex items-center gap-2">
+              <button onClick={loadPnl} className="px-3 py-2 rounded-lg border border-border/50 hover:bg-secondary text-sm">Reload</button>
+              <button onClick={printPnl} className="px-3 py-2 rounded-lg border border-border/50 hover:bg-secondary text-sm">Print</button>
+              <button onClick={handleExportPnl} className="p-2 glass rounded-lg hover:bg-secondary transition-colors flex items-center gap-2">
+                <Download className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="p-6 border-b border-border/50">
         <div className="flex items-center justify-between">
@@ -668,6 +794,105 @@ const ReportsView = () => {
       );
     }
 
+    if (selectedReport === 'pnl') {
+      if (!pnl) return <div className="p-6 text-sm text-muted-foreground">No P&amp;L data.</div>;
+      const expenseCats = Object.entries(pnl.expenseByCategory || {});
+      const rows = [
+        { metric: "Today's Sales", amount: pnl.todaySales ?? 0, note: '' },
+        { metric: 'Gross Profit', amount: pnl.grossProfit ?? 0, note: '' },
+        { metric: 'Net Profit', amount: pnl.netProfit ?? 0, note: `${pnl.profitMargin ?? 0}% margin` },
+        { metric: 'Expenses (period)', amount: pnl.expenses ?? 0, note: '' },
+        { metric: 'Cash In', amount: pnl.cashInHand ?? 0, note: '' },
+        { metric: 'Balances Due', amount: pnl.outstandingBalances ?? 0, note: '' },
+        { metric: 'Period Revenue', amount: pnl.revenue ?? 0, note: '' },
+        { metric: 'COGS', amount: pnl.cogs ?? 0, note: '' },
+        { metric: 'Weekly Sales', amount: pnl.weeklyRevenue ?? 0, note: '' },
+        { metric: 'Monthly Sales', amount: pnl.monthlyRevenue ?? 0, note: '' },
+      ];
+      return (
+        <div className="p-6 space-y-6">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead className="bg-secondary/50">
+                <tr>
+                  <th className="p-3 text-sm font-semibold w-12">#</th>
+                  <th className="p-3 text-sm font-semibold">Metric</th>
+                  <th className="p-3 text-sm font-semibold text-right">Amount</th>
+                  <th className="p-3 text-sm font-semibold">Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row, idx) => (
+                  <tr key={row.metric} className="border-t border-border/50">
+                    <td className="p-3 text-center">{idx + 1}</td>
+                    <td className="p-3 font-medium">{row.metric}</td>
+                    <td className={`p-3 text-right font-semibold ${
+                      row.metric === 'Gross Profit' ? 'text-emerald-600' :
+                      row.metric === 'Net Profit' ? 'text-blue-700' :
+                      row.metric === 'Expenses (period)' || row.metric === 'Balances Due' ? 'text-red-600' :
+                      ''
+                    }`}>{formatAmount(row.amount)}</td>
+                    <td className="p-3 text-sm text-muted-foreground">{row.note || '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {(pnl.bestSellers?.length || expenseCats.length > 0) && (
+            <div className="grid md:grid-cols-2 gap-4">
+              {!!pnl.bestSellers?.length && (
+                <div className="overflow-x-auto border rounded-xl">
+                  <table className="w-full text-left">
+                    <thead className="bg-secondary/50">
+                      <tr>
+                        <th className="p-3 text-sm font-semibold w-12">#</th>
+                        <th className="p-3 text-sm font-semibold">Best seller</th>
+                        <th className="p-3 text-sm font-semibold text-right">Qty</th>
+                        <th className="p-3 text-sm font-semibold text-right">Revenue</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pnl.bestSellers.slice(0, 8).map((b, i) => (
+                        <tr key={b.name} className="border-t border-border/50">
+                          <td className="p-3 text-center">{i + 1}</td>
+                          <td className="p-3">{b.name}</td>
+                          <td className="p-3 text-right">{b.qty}</td>
+                          <td className="p-3 text-right font-semibold">{formatAmount(b.revenue)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              {expenseCats.length > 0 && (
+                <div className="overflow-x-auto border rounded-xl">
+                  <table className="w-full text-left">
+                    <thead className="bg-secondary/50">
+                      <tr>
+                        <th className="p-3 text-sm font-semibold w-12">#</th>
+                        <th className="p-3 text-sm font-semibold">Expense category</th>
+                        <th className="p-3 text-sm font-semibold text-right">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {expenseCats.map(([cat, amt], i) => (
+                        <tr key={cat} className="border-t border-border/50">
+                          <td className="p-3 text-center">{i + 1}</td>
+                          <td className="p-3">{cat}</td>
+                          <td className="p-3 text-right font-semibold text-red-600">{formatAmount(amt)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      );
+    }
+
     return (
       <div className="p-6">
         <div className="overflow-x-auto">
@@ -731,6 +956,10 @@ const ReportsView = () => {
               loadOrders();
             } else if (selectedReport === 'sales') {
               loadSalesFromPayments();
+            } else if (selectedReport === 'pnl') {
+              loadPnl();
+            } else if (selectedReport === 'inventory') {
+              loadInventory();
             }
           }}>
             <FileText className="w-4 h-4" />
@@ -831,7 +1060,16 @@ const ReportsView = () => {
                 </select>
               </div>
 
-              <button className="w-full bg-gradient-primary text-white py-3 rounded-xl hover:shadow-glow transition-all duration-300" disabled={loading}>
+              <button
+                className="w-full bg-gradient-primary text-white py-3 rounded-xl hover:shadow-glow transition-all duration-300 disabled:opacity-60"
+                disabled={loading}
+                onClick={() => {
+                  if (selectedReport === 'customers') loadOrders();
+                  else if (selectedReport === 'sales') loadSalesFromPayments();
+                  else if (selectedReport === 'pnl') loadPnl();
+                  else if (selectedReport === 'inventory') loadInventory();
+                }}
+              >
                 Generate Report
               </button>
             </div>
