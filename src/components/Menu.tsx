@@ -6,7 +6,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { 
   Home, ShoppingCart, Users, Package, User, 
-  FileText, Settings, LogOut, Bell, Search, Quote
+  FileText, Settings, LogOut, Quote, Store,
+  Truck, Wallet, Landmark, Factory, MapPinned, Bell
 } from 'lucide-react';
 
 // TypeScript interfaces
@@ -24,10 +25,10 @@ interface MenuSection {
   items: MenuItem[];
 }
 
-// AutoSpares Menu data structure
+// Mwima Eliken Poultry Farm menu
 export const menuItems: MenuSection[] = [
   {
-    title: "Welcome To the New Era of Technology",
+    title: "Mwima Eliken Poultry Farm",
     items: [
       {
         icon: Home,
@@ -36,16 +37,38 @@ export const menuItems: MenuSection[] = [
         href: "/admin",
         isDirectLink: true
       },
-        {
+      {
+        icon: Store,
+        label: "POS",
+        visible: ["admin", "user", "manager"],
+        href: "/pages/pos",
+        isDirectLink: true
+      },
+      {
         icon: ShoppingCart,
         label: "Orders",
         visible: ["admin", "user", "manager"],
         subItems: [
+          { label: "Order Pipeline", visible: ["admin", "user", "manager"], href: "/pages/orders/pipeline" },
           { label: "Create Order", visible: ["admin", "user", "manager"], href: "/pages/orders/createOrder" },
           { label: "Orders View", visible: ["admin", "user", "manager"], href: "/pages/orders/OrdersView" },
           { label: "Delete Order", visible: ["admin", "manager"], href: "/pages/orders/DeleteOrder" },
           { label: "Payments", visible: ["admin", "user", "manager"], href: "/pages/orders/payments" },
         ],
+      },
+      {
+        icon: Factory,
+        label: "Production",
+        visible: ["admin", "manager", "user"],
+        href: "/pages/production",
+        isDirectLink: true
+      },
+      {
+        icon: MapPinned,
+        label: "Deliveries",
+        visible: ["admin", "manager", "user"],
+        href: "/pages/deliveries",
+        isDirectLink: true
       },
       {
         icon: Quote,
@@ -73,7 +96,7 @@ export const menuItems: MenuSection[] = [
         label: "Inventory",
         visible: ["admin", "user", "manager"],
         subItems: [
-          { label: "Add Inventory", visible: ["admin", "user", "manager"], href: "/pages/inventory/CreateInventory" },
+          { label: "Add Product", visible: ["admin", "user", "manager"], href: "/pages/inventory/CreateInventory" },
           { label: "Restock", visible: ["admin", "user", "manager"], href: "/pages/inventory/RestockInventory" },
           { label: "View/Edit", visible: ["admin", "user", "manager"], href: "/pages/inventory/ViewEditInventory" },
           { label: "Delete", visible: ["admin", "manager"], href: "/pages/inventory/DeleteInventory" },
@@ -87,6 +110,27 @@ export const menuItems: MenuSection[] = [
             ],
           },
         ],
+      },
+      {
+        icon: Truck,
+        label: "Suppliers",
+        visible: ["admin", "manager"],
+        href: "/pages/suppliers",
+        isDirectLink: true
+      },
+      {
+        icon: Landmark,
+        label: "Purchases",
+        visible: ["admin", "manager"],
+        href: "/pages/purchases",
+        isDirectLink: true
+      },
+      {
+        icon: Wallet,
+        label: "Expenses",
+        visible: ["admin", "manager"],
+        href: "/pages/expenses",
+        isDirectLink: true
       },
       {
         icon: User,
@@ -103,6 +147,13 @@ export const menuItems: MenuSection[] = [
         label: "Reports",
         visible: ["admin", "user", "manager"],
         href: "/pages/reports",
+        isDirectLink: true
+      },
+      {
+        icon: Bell,
+        label: "Alerts",
+        visible: ["admin", "manager", "user"],
+        href: "/pages/alerts",
         isDirectLink: true
       },
     ],
@@ -411,23 +462,20 @@ const Menu = () => {
       </div>
 
       <div className="flex-1" />
-      {/* AutoSpares Image and Documentation Section */}
+      {/* Mwima brand panel */}
       <div className="hidden lg:flex pt-8 flex-col items-center">
         <div className="relative w-full h-40 mb-4">
           <Image
-            src="/autospare-image.webp"
-            alt="AutoSpares Management"
+            src="/mwima-logo.png"
+            alt="Mwima Eliken Poultry Farm"
             fill
-            className="object-cover rounded-lg"
+            className="object-contain rounded-lg bg-white p-2"
             priority
           />
         </div>
-        <Link 
-          href="/autospares-docs.pdf"
-          className="bg-blue-400 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors w-full text-center"
-        >
-          Download Documentation.
-        </Link>
+        <p className="text-xs text-center text-gray-500 px-2">
+          Fresh Chicken every day · Jinja City
+        </p>
       </div>
 
       {/* Logout Dialog */}

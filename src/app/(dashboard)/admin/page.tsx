@@ -98,6 +98,7 @@ const AdminPage = () => {
     productsChange: 0,
     customersChange: 0
   });
+  const [pnl, setPnl] = useState<any>(null);
   const [salesChartData, setSalesChartData] = useState<SalesChartData[]>([]);
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [topProducts, setTopProducts] = useState<InventoryItem[]>([]);
@@ -124,23 +125,37 @@ const AdminPage = () => {
   // Fetch dashboard statistics
   const fetchDashboardStats = useCallback(async () => {
     try {
-      const apiBase = process.env.NODE_ENV === 'production' 
-        ? 'https://autosparesbackend-production.up.railway.app/api/v1'
-        : 'http://localhost:4210/api/v1';
+      const apiBase = process.env.NEXT_PUBLIC_API_URL ||
+        (process.env.NODE_ENV === 'production'
+          ? 'https://autosparesbackend-production.up.railway.app/api/v1'
+          : 'http://localhost:4210/api/v1');
       const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
 
       // Fetch dashboard stats from the dedicated endpoint
-      const statsResponse = await fetch(`${apiBase}/orders/dashboard/stats`, {
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        }
-      });
+      const [statsResponse, pnlResponse] = await Promise.all([
+        fetch(`${apiBase}/orders/dashboard/stats`, {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          }
+        }),
+        fetch(`${apiBase}/reports/pnl`, {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          }
+        }),
+      ]);
 
       let dashboardData: any = {};
       if (statsResponse.ok) {
         const statsResult = await statsResponse.json();
         dashboardData = statsResult?.data ?? statsResult ?? {};
+      }
+
+      if (pnlResponse.ok) {
+        const pnlResult = await pnlResponse.json();
+        setPnl(pnlResult?.data ?? null);
       }
 
       // Use data from dashboard stats endpoint
@@ -298,6 +313,34 @@ const AdminPage = () => {
 
       {!loading && (
         <>
+          {/* P&L strip */}
+          {pnl && (
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
+              <div className="glass p-4 rounded-xl border border-border/50">
+                <p className="text-xs text-muted-foreground">Today&apos;s Sales</p>
+                <p className="text-lg font-bold">UGX {formatAmount(pnl.todaySales)}</p>
+              </div>
+              <div className="glass p-4 rounded-xl border border-border/50">
+                <p className="text-xs text-muted-foreground">Gross Profit</p>
+                <p className="text-lg font-bold text-emerald-600">UGX {formatAmount(pnl.grossProfit)}</p>
+              </div>
+              <div className="glass p-4 rounded-xl border border-border/50">
+                <p className="text-xs text-muted-foreground">Net Profit</p>
+                <p className="text-lg font-bold text-blue-700">UGX {formatAmount(pnl.netProfit)}</p>
+                <p className="text-[10px] text-muted-foreground">{pnl.profitMargin}% margin</p>
+              </div>
+              <div className="glass p-4 rounded-xl border border-border/50">
+                <p className="text-xs text-muted-foreground">Expenses (period)</p>
+                <p className="text-lg font-bold text-red-600">UGX {formatAmount(pnl.expenses)}</p>
+              </div>
+              <div className="glass p-4 rounded-xl border border-border/50">
+                <p className="text-xs text-muted-foreground">Cash In / Balances Due</p>
+                <p className="text-sm font-semibold">Cash UGX {formatAmount(pnl.cashInHand)}</p>
+                <p className="text-xs text-amber-700">Due UGX {formatAmount(pnl.outstandingBalances)}</p>
+              </div>
+            </div>
+          )}
+
           {/* Stats Overview */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
             <div className={`glass p-6 rounded-2xl border border-border/50 hover:shadow-large transition-all duration-300 interactive ${isLoaded ? 'animate-scale-in' : 'opacity-0'}`}>
