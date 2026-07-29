@@ -5,7 +5,7 @@
  * for working with API endpoints.
  */
 
-// API base URL - prefer explicit env, then local backend, then Railway
+// API base URL — Railway production by default
 const fromBackend =
   process.env.NEXT_PUBLIC_BACKEND_API_URL
     ? `${process.env.NEXT_PUBLIC_BACKEND_API_URL.replace(/\/$/, "")}/api/v1`
@@ -14,9 +14,7 @@ const fromBackend =
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   fromBackend ||
-  (process.env.NODE_ENV === "development"
-    ? "http://localhost:4210/api/v1"
-    : "https://autosparesbackend-production.up.railway.app/api/v1");
+  "https://autosparesbackend-production.up.railway.app/api/v1";
 
 // Database URL for direct connections if needed
 export const DATABASE_URL = process.env.DATABASE_URL || 

@@ -4,7 +4,8 @@ const nextConfig = {
   images: {
     remotePatterns: [
       { hostname: "images.pexels.com" },
-      { hostname: "localhost" }
+      { hostname: "localhost" },
+      { hostname: "ywzdqadsnkknmmxpyxwf.supabase.co" },
     ],
     unoptimized: true
   },

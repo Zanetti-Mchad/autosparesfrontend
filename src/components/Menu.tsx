@@ -186,7 +186,7 @@ export const menuItems: MenuSection[] = [
   }
 ];
 
-const Menu = () => {
+const Menu = ({ onNavigate }: { onNavigate?: () => void }) => {
   const [expandedPath, setExpandedPath] = useState<string | null>(null);
   const [role, setRole] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -198,6 +198,11 @@ const Menu = () => {
     setRole(userRole);
     setIsLoading(false);
   }, []);
+
+  const handleNavigate = () => {
+    setExpandedPath(null);
+    onNavigate?.();
+  };
 
   const handleLogout = async () => {
     try {
@@ -329,6 +334,7 @@ const Menu = () => {
       return (
         <Link
           href={getHref(item)}
+          onClick={handleNavigate}
           className="flex items-center gap-3 text-gray-700 md:text-gray-500 py-3 px-2 rounded-md hover:bg-primary/10 md:hover:bg-lamaSkyLight w-full text-sm md:text-base"
         >
           {item.icon && <item.icon className="w-5 h-5 flex-shrink-0 text-gray-600 md:text-gray-500" />}
@@ -415,6 +421,7 @@ const Menu = () => {
                   <Link
                     key={item.label}
                     href={getHref(item)}
+                    onClick={handleNavigate}
                     className="flex items-center justify-start gap-4 text-gray-500 py-2 md:px-2 rounded-md hover:bg-lamaSkyLight"
                   >
                     {item.icon && (

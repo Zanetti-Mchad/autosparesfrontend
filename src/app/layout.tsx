@@ -48,11 +48,18 @@ interface BusinessSettingsResponse {
   currency: string;
 }
 
-// Helper function to get image URL from Supabase
+// Business logo / settings photos
 const getImageUrl = (path: string) => {
   if (!path) return '';
   if (path.startsWith('http')) return path;
   return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/shopsettings-photos/photos/${path}`;
+};
+
+// Staff profile photos (same bucket as Users table)
+const getStaffPhotoUrl = (path: string) => {
+  if (!path) return '';
+  if (path.startsWith('http')) return path;
+  return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/shopstaff-photos/${path}`;
 };
 
 const LogoutDialog = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
@@ -122,6 +129,11 @@ export default function RootLayout({
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [stockAlertsCount, setStockAlertsCount] = useState(0);
+
+  // Close mobile drawer after navigation on small screens
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [pathname]);
 
   // Function to fetch user data from database
   const fetchUserData = async (userId: string) => {
@@ -456,11 +468,15 @@ export default function RootLayout({
                     <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center overflow-hidden">
                       {userData?.photo ? (
                         <Image 
-                          src={getImageUrl(userData.photo)} 
+                          src={getStaffPhotoUrl(userData.photo)} 
                           alt={`${userData.firstName} ${userData.lastName || ''}`}
                           width={40}
                           height={40}
                           className="w-full h-full object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                          }}
                         />
                       ) : (
                         <User className="w-5 h-5 text-white" />
@@ -543,7 +559,7 @@ export default function RootLayout({
               
               
               <nav className="p-4 sm:p-6">
-                <Menu />
+                <Menu onNavigate={() => setIsMobileMenuOpen(false)} />
               </nav>
             </aside>
 

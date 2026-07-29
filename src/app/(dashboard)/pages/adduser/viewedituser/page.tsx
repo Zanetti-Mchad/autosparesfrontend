@@ -239,48 +239,59 @@ const UsersList = ({ editMode = false }: UsersListProps) => {
         return;
       }
 
-      const apiUrl = `/integration/users/${editFormData.id}`;
-      console.log('✏️ [UPDATE USER] API URL:', apiUrl);
-      console.log('✏️ [UPDATE USER] User ID:', editFormData.id);
-      console.log('✏️ [UPDATE USER] Access Token:', accessToken ? 'Present' : 'Missing');
-      console.log('✏️ [UPDATE USER] Update Data:', editFormData);
-      console.log('✏️ [UPDATE USER] Update Data Keys:', Object.keys(editFormData));
+      if (!editFormData.id) {
+        toast({
+          title: 'Error',
+          description: 'Missing user id. Close and open the edit dialog again.',
+          variant: 'destructive',
+        });
+        return;
+      }
 
-      // Update user via API
-      const response = await fetchApi(apiUrl, {
+      const payload = {
+        firstName: editFormData.firstName?.trim(),
+        lastName: editFormData.lastName?.trim() || null,
+        email: editFormData.email?.trim(),
+        phone: editFormData.phone?.trim() || null,
+        role: editFormData.role,
+        isActive: editFormData.isActive,
+        photo: editFormData.photo || null,
+        staff_photo: editFormData.photo || null,
+      };
+
+      const apiUrl = `/integration/users/${editFormData.id}`;
+      const result = await fetchApi(apiUrl, {
         method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-        } as any,
-        body: JSON.stringify(editFormData),
+        body: JSON.stringify(payload),
       });
 
-      console.log('✏️ [UPDATE USER] Response Status:', response.status);
-      console.log('✏️ [UPDATE USER] Response OK:', response.ok);
-      console.log('✏️ [UPDATE USER] Response Headers:', Object.fromEntries(response.headers.entries()));
+      const saved = (result?.data || result) as Partial<User>;
+      const mergedUser: User = {
+        ...editFormData,
+        ...saved,
+        id: editFormData.id,
+        firstName: saved.firstName || editFormData.firstName,
+        lastName: saved.lastName || editFormData.lastName,
+        email: saved.email || editFormData.email,
+        phone: saved.phone || editFormData.phone || '',
+        role: saved.role || editFormData.role,
+        isActive: typeof saved.isActive === 'boolean' ? saved.isActive : editFormData.isActive,
+        photo: saved.photo || editFormData.photo,
+      };
 
-      const result = response;
-      console.log('📊 [UPDATE USER] Response Data:', result);
-      console.log('📊 [UPDATE USER] Response Type:', typeof result);
-
-      // Update local state
-      setUsers(prevUsers => 
-        prevUsers.map(user => 
-          user.id === editFormData.id ? editFormData : user
-        )
+      setUsers((prevUsers) =>
+        prevUsers.map((user) => (user.id === editFormData.id ? mergedUser : user))
       );
-
-      console.log('✅ [UPDATE USER] User updated successfully in local state');
-      console.log('✅ [UPDATE USER] Updated user data:', editFormData);
+      setCurrentUser(mergedUser);
+      setEditFormData(mergedUser);
 
       toast({
         title: 'Success',
-        description: `${editFormData.firstName} ${editFormData.lastName}'s profile has been updated successfully`,
+        description: `${mergedUser.firstName} ${mergedUser.lastName}'s profile has been updated successfully`,
         variant: 'default',
       });
-      
+
       setIsEditDialogOpen(false);
-      console.log('🏁 [UPDATE USER] Edit dialog closed');
     } catch (error) {
       console.error('❌ [UPDATE USER] Error updating user:', error);
       toast({
@@ -333,22 +344,23 @@ const UsersList = ({ editMode = false }: UsersListProps) => {
       console.log('🔄 [BULK ACTION] Update data for user', user.id, ':', updatedUser);
 
       try {
-        const response = await fetchApi(apiUrl, {
+        const result = await fetchApi(apiUrl, {
           method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-          } as any,
-          body: JSON.stringify(updatedUser),
+          body: JSON.stringify({
+            firstName: updatedUser.firstName,
+            lastName: updatedUser.lastName,
+            email: updatedUser.email,
+            phone: updatedUser.phone?.trim() || null,
+            role: updatedUser.role,
+            isActive: updatedUser.isActive,
+            photo: updatedUser.photo || null,
+            staff_photo: updatedUser.photo || null,
+          }),
         });
 
-        console.log('🔄 [BULK ACTION] Response for user', user.id, ':', response.status, response.ok);
-
-        const result = response;
-        console.log('📊 [BULK ACTION] Response data for user', user.id, ':', result);
-        
-        // Update local state
-        setUsers(prevUsers => 
-          prevUsers.map(u => u.id === user.id ? updatedUser : u)
+        const saved = result?.data || updatedUser;
+        setUsers((prevUsers) =>
+          prevUsers.map((u) => (u.id === user.id ? { ...updatedUser, ...saved } : u))
         );
         console.log('✅ [BULK ACTION] User', user.id, 'updated successfully in local state');
       } catch (error) {

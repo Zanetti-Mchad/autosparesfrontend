@@ -46,11 +46,11 @@ const ProfilePage = () => {
     photo: ''
   });
 
-  // Helper function to get Supabase image URL
+  // Staff profile photos (same bucket as Users / header)
   const getImageUrl = (path: string) => {
     if (!path) return '';
     if (path.startsWith('http')) return path;
-    return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/shopsettings-photos/photos/${path}`;
+    return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/shopstaff-photos/${path}`;
   };
   
   // Function to fetch user data from database
