@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { X, User, MapPin, Package, CreditCard, Info, Calendar, Phone, Mail, Home, MapPin as MapPinIcon, Printer } from 'lucide-react';
+import { fetchApi } from '@/lib/apiConfig';
 
 interface OrderItem {
   id: string;
@@ -97,7 +98,7 @@ const OrderModal: React.FC<OrderModalProps> = ({ order, mode, onClose, onSave })
   }, []);
 
   // Receipt print function with compact layout
-  const handlePrint = useCallback(() => {
+  const handlePrint = useCallback(async () => {
     if (!isClient || !order) {
       console.error('Printing is only available on the client side with valid order data');
       return;
@@ -110,6 +111,35 @@ const OrderModal: React.FC<OrderModalProps> = ({ order, mode, onClose, onSave })
     }
     
     try {
+      let business: {
+        businessName?: string;
+        businessTagLine?: string;
+        location?: string;
+        telephone?: string;
+        email?: string;
+        tin?: string;
+      } = {};
+      try {
+        const bizRes = await fetchApi('/settings/business').catch(() =>
+          fetchApi('/settings/view')
+        );
+        business = bizRes?.data || {};
+      } catch {
+        // use defaults
+      }
+
+      const companyName = business.businessName || 'Autospares';
+      const companyDetails = [
+        business.businessTagLine,
+        business.location,
+        business.telephone ? `Tel: ${business.telephone}` : '',
+        business.email ? `Email: ${business.email}` : '',
+        business.tin ? `TIN: ${business.tin}` : '',
+      ]
+        .filter(Boolean)
+        .map((line) => `<p>${line}</p>`)
+        .join('');
+
       // Generate print content with proper error handling
       const printContent = `
         <!DOCTYPE html>
@@ -148,7 +178,9 @@ const OrderModal: React.FC<OrderModalProps> = ({ order, mode, onClose, onSave })
         <body>
           <div class="receipt">
             <div class="receipt-header">
-              <h1>ORDER RECEIPT</h1>
+              <h1>${companyName}</h1>
+              ${companyDetails}
+              <p style="margin-top:12px;"><strong>ORDER RECEIPT</strong></p>
               <p>Order #${order.orderNumber || order.id}</p>
               <p>${formatDate(order.date)}</p>
             </div>

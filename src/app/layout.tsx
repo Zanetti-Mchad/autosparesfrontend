@@ -8,7 +8,7 @@ import Image from 'next/image';
 import { 
   Search, User, Settings, LogOut, Package, 
   Users, FileText, Bell, ShoppingCart,
-  Home, Zap, ChevronRight, ChevronDown,
+  Home, Zap, ChevronRight, ChevronDown, ArrowUp,
   Phone, ExternalLink, Mail, AlertTriangle
 } from 'lucide-react';
 import Menu from '@/components/Menu';
@@ -69,7 +69,7 @@ const LogoutDialog = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
   
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="glass rounded-2xl p-8 max-w-md w-full mx-4">
+      <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-xl">
         <div className="text-center">
           <div className="w-16 h-16 bg-gradient-to-r from-red-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4">
             <LogOut className="w-8 h-8 text-white" />
@@ -79,7 +79,7 @@ const LogoutDialog = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
           <div className="flex space-x-3">
             <button
               onClick={onClose}
-              className="flex-1 px-4 py-2 glass rounded-xl text-foreground hover:bg-secondary transition-colors"
+              className="flex-1 px-4 py-2 bg-gray-100 rounded-xl text-foreground hover:bg-gray-200 transition-colors"
             >
               Cancel
             </button>
@@ -137,6 +137,7 @@ export default function RootLayout({
   }>>([]);
   const [showAlertsPanel, setShowAlertsPanel] = useState(false);
   const [alertsLoading, setAlertsLoading] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
   const alertsPanelRef = useRef<HTMLDivElement>(null);
 
   // Close mobile drawer after navigation on small screens
@@ -144,6 +145,13 @@ export default function RootLayout({
     setIsMobileMenuOpen(false);
     setShowAlertsPanel(false);
   }, [pathname]);
+
+  useEffect(() => {
+    const onScroll = () => setShowScrollTop(window.scrollY > 300);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   // Function to fetch user data from database
   const fetchUserData = async (userId: string) => {
@@ -425,7 +433,7 @@ export default function RootLayout({
         <div className="min-h-screen bg-background text-foreground flex flex-col">
           <LogoutDialog isOpen={showLogoutDialog} onClose={() => setShowLogoutDialog(false)} />
           
-          <header className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+          <header className="bg-white border-b border-gray-200 z-50 shadow-sm">
             <div className="flex items-center justify-between px-4 md:px-8 py-4">
               <div className="flex items-center space-x-4 md:space-x-6">
                 {/* Mobile menu button */}
@@ -727,6 +735,18 @@ export default function RootLayout({
               </Link>
             </div>
           </footer>
+
+          {showScrollTop && (
+            <button
+              type="button"
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              className="fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full bg-blue-600 text-white shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all flex items-center justify-center"
+              aria-label="Scroll to top"
+              title="Scroll to top"
+            >
+              <ArrowUp className="w-5 h-5" />
+            </button>
+          )}
         </div>
       </body>
     </html>

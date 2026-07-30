@@ -149,7 +149,8 @@ export default function PurchasesPage() {
         <table className="min-w-full text-sm">
           <thead className="bg-gray-50 text-left">
             <tr>
-              <th className="p-3">#</th>
+              <th className="p-3">No.</th>
+              <th className="p-3">Purchase #</th>
               <th className="p-3">Supplier</th>
               <th className="p-3">Invoice</th>
               <th className="p-3">Total</th>
@@ -159,8 +160,9 @@ export default function PurchasesPage() {
             </tr>
           </thead>
           <tbody>
-            {purchases.map((p) => (
+            {purchases.map((p, index) => (
               <tr key={p.id} className="border-t">
+                <td className="p-3 font-medium text-gray-700">{index + 1}.</td>
                 <td className="p-3 font-mono text-xs">{p.purchaseNumber}</td>
                 <td className="p-3">{p.supplier?.name}</td>
                 <td className="p-3">{p.invoiceNumber || "—"}</td>

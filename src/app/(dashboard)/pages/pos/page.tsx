@@ -35,6 +35,15 @@ type Customer = {
 
 type PaymentSplit = { method: string; amount: string };
 
+type BusinessInfo = {
+  businessName: string;
+  businessTagLine: string;
+  location: string;
+  tin: string;
+  email: string;
+  telephone: string;
+};
+
 const money = (n: number) =>
   `UGX ${Number(n || 0).toLocaleString("en-UG", { maximumFractionDigits: 0 })}`;
 
@@ -51,14 +60,18 @@ export default function PosPage() {
   ]);
   const [submitting, setSubmitting] = useState(false);
   const [lastReceipt, setLastReceipt] = useState<any>(null);
+  const [business, setBusiness] = useState<BusinessInfo | null>(null);
   const barcodeRef = useRef<HTMLInputElement>(null);
   const receiptRef = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async () => {
     try {
-      const [invRes, custRes] = await Promise.all([
+      const [invRes, custRes, bizRes] = await Promise.all([
         fetchApi("/inventory/inventory?limit=200"),
         fetchApi("/customers?limit=200"),
+        fetchApi("/settings/business").catch(() =>
+          fetchApi("/settings/view").catch(() => null)
+        ),
       ]);
       const invList = invRes?.data?.items ?? invRes?.data ?? [];
       setProducts(
@@ -68,6 +81,17 @@ export default function PosPage() {
       );
       const custList = custRes?.data?.items ?? custRes?.data ?? [];
       setCustomers(Array.isArray(custList) ? custList : []);
+      const biz = bizRes?.data;
+      if (biz) {
+        setBusiness({
+          businessName: biz.businessName || "",
+          businessTagLine: biz.businessTagLine || "",
+          location: biz.location || "",
+          tin: biz.tin || "",
+          email: biz.email || "",
+          telephone: biz.telephone || "",
+        });
+      }
     } catch (e: any) {
       toast.error(e.message || "Failed to load POS data");
     }
@@ -196,16 +220,21 @@ export default function PosPage() {
 
   const whatsappReceipt = () => {
     if (!lastReceipt) return toast.error("Complete a sale first");
+    const companyName = business?.businessName || "Autospares";
     const lines = [
-      `*Mwima Eliken Poultry Farm*`,
+      `*${companyName}*`,
+      business?.businessTagLine ? business.businessTagLine : null,
+      business?.location ? business.location : null,
+      business?.telephone ? `Tel: ${business.telephone}` : null,
+      business?.email ? `Email: ${business.email}` : null,
+      business?.tin ? `TIN: ${business.tin}` : null,
       `Receipt: ${lastReceipt.orderNumber}`,
       `Total: ${money(lastReceipt.total)}`,
       ...(lastReceipt.items || []).map(
         (i: any) => `• ${i.productName} x${i.quantity} = ${money(i.totalPrice)}`
       ),
-      `Thank you! Fresh chicken every day.`,
-      `0740 308 590`,
-    ];
+      `Thank you for your business!`,
+    ].filter(Boolean) as string[];
     const phone = (lastReceipt.customerPhone || "").replace(/\D/g, "");
     const url = `https://wa.me/${phone ? (phone.startsWith("256") ? phone : `256${phone.slice(-9)}`) : ""}?text=${encodeURIComponent(lines.join("\n"))}`;
     window.open(url, "_blank");
@@ -216,7 +245,9 @@ export default function PosPage() {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Point of Sale</h1>
-          <p className="text-sm text-gray-500">Mwima Eliken · scan barcode or search products</p>
+          <p className="text-sm text-gray-500">
+            {business?.businessName || "Autospares"} · scan barcode or search products
+          </p>
         </div>
       </div>
 
@@ -418,10 +449,32 @@ export default function PosPage() {
 
       <div className="hidden" ref={receiptRef}>
         {lastReceipt && (
-          <div style={{ fontFamily: "monospace", padding: 16 }}>
-            <h2>Mwima Eliken Poultry Farm</h2>
-            <p>Gokhale Road, Jinja · 0740 308 590</p>
+          <div style={{ fontFamily: "monospace", padding: 16, maxWidth: 320 }}>
+            <div style={{ textAlign: "center", marginBottom: 12 }}>
+              <h2 style={{ margin: "0 0 4px", fontSize: 18 }}>
+                {business?.businessName || "Autospares"}
+              </h2>
+              {business?.businessTagLine && (
+                <p style={{ margin: "0 0 4px", fontSize: 12 }}>{business.businessTagLine}</p>
+              )}
+              {business?.location && (
+                <p style={{ margin: "0 0 2px", fontSize: 12 }}>{business.location}</p>
+              )}
+              {business?.telephone && (
+                <p style={{ margin: "0 0 2px", fontSize: 12 }}>Tel: {business.telephone}</p>
+              )}
+              {business?.email && (
+                <p style={{ margin: "0 0 2px", fontSize: 12 }}>Email: {business.email}</p>
+              )}
+              {business?.tin && (
+                <p style={{ margin: "0 0 2px", fontSize: 12 }}>TIN: {business.tin}</p>
+              )}
+            </div>
+            <hr />
             <p>Receipt: {lastReceipt.orderNumber}</p>
+            <p style={{ fontSize: 12 }}>
+              {new Date(lastReceipt.createdAt || Date.now()).toLocaleString()}
+            </p>
             <hr />
             {(lastReceipt.items || []).map((i: any) => (
               <p key={i.id}>
@@ -432,7 +485,7 @@ export default function PosPage() {
             <p>
               <strong>Total: {money(lastReceipt.total)}</strong>
             </p>
-            <p>Thank you — Fresh Chicken every day</p>
+            <p style={{ textAlign: "center", marginTop: 12 }}>Thank you for your business!</p>
           </div>
         )}
       </div>

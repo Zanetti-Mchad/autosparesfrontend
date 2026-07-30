@@ -110,7 +110,10 @@ const OrderModal: React.FC<OrderModalProps> = ({ order, mode, onClose, onSave })
     });
   };
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
+    const w = window.open('', '_blank');
+    if (!w) return;
+
     const dt = new Date(draft.date || new Date().toISOString());
     const dateStr = `${String(dt.getMonth()+1).padStart(2,'0')}/${String(dt.getDate()).padStart(2,'0')}/${dt.getFullYear()}`;
     const timeStr = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -129,11 +132,40 @@ const OrderModal: React.FC<OrderModalProps> = ({ order, mode, onClose, onSave })
     const tax = toNumber(draft.vat);
     const grand = toNumber(draft.total) || (subTotal + tax);
 
+    let business: {
+      businessName?: string;
+      businessTagLine?: string;
+      location?: string;
+      telephone?: string;
+      email?: string;
+      tin?: string;
+    } = {};
+    try {
+      const bizRes = await fetchApi('/settings/business').catch(() =>
+        fetchApi('/settings/view')
+      );
+      business = bizRes?.data || {};
+    } catch {
+      // fall back to defaults below
+    }
+
+    const companyName = business.businessName || 'Autospares';
+    const companyLines = [
+      business.businessTagLine,
+      business.location,
+      business.telephone ? `Tel: ${business.telephone}` : '',
+      business.email ? `Email: ${business.email}` : '',
+      business.tin ? `TIN: ${business.tin}` : '',
+    ]
+      .filter(Boolean)
+      .map((line) => `<div class="muted">${line}</div>`)
+      .join('');
+
     const html = `<!doctype html>
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Order ${draft.id}</title>
+  <title>Order ${draft.orderNumber || draft.id}</title>
   <style>
     @page { size: 80mm auto; margin: 6mm; }
     body { width: 72mm; margin: 0 auto; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial; color:#111827; }
@@ -151,11 +183,11 @@ const OrderModal: React.FC<OrderModalProps> = ({ order, mode, onClose, onSave })
 </head>
 <body>
   <div class="center">
-    <div class="brand">Autospares</div>
-    <div class="muted">${draft.shippingCity || 'Kampala'}, ${draft.shippingDistrict || ''}</div>
+    <div class="brand">${companyName}</div>
+    ${companyLines}
     <div class="divider"></div>
     <div class="muted">${dateStr} &nbsp;&nbsp; ${timeStr}</div>
-    <div class="muted">Order: <span class="bold">${draft.id}</span></div>
+    <div class="muted">Order: <span class="bold">${draft.orderNumber || draft.id}</span></div>
   </div>
 
   <div style="margin-top:8px">
@@ -177,18 +209,18 @@ const OrderModal: React.FC<OrderModalProps> = ({ order, mode, onClose, onSave })
     <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:14px"><span class="bold">AMT</span><span class="bold" style="font-size:16px">${formatAmount(grand)}</span></div>
   </div>
 
+  <div class="center" style="margin-top:12px">
+    <div class="muted">Thank you for your business!</div>
+  </div>
   <div class="barcode"></div>
 </body>
 </html>`;
 
-    const w = window.open('', '_blank');
-    if (w) {
-      w.document.write(html);
-      w.document.close();
-      w.focus();
-      w.print();
-      w.close();
-    }
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    w.print();
+    w.close();
   };
 
   return (
@@ -786,7 +818,7 @@ const ViewEditOrder = () => {
           <input 
             type="text" 
             placeholder="Search by ID, customer, or product..." 
-            className="pl-12 pr-4 py-3 w-full md:w-80 form-input"
+            className="pl-12 pr-4 py-3 w-full md:w-80 form-input border border-gray-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
             value={searchTerm}
             onChange={handleSearch}
           />

@@ -242,6 +242,7 @@ export default function ProductionPage() {
         <table className="min-w-full text-sm">
           <thead className="bg-gray-50 text-left">
             <tr>
+              <th className="p-3">No.</th>
               <th className="p-3">Batch</th>
               <th className="p-3">Date</th>
               <th className="p-3">Received</th>
@@ -253,8 +254,9 @@ export default function ProductionPage() {
             </tr>
           </thead>
           <tbody>
-            {logs.map((l) => (
+            {logs.map((l, index) => (
               <tr key={l.id} className="border-t">
+                <td className="p-3 font-medium text-gray-700">{index + 1}.</td>
                 <td className="p-3 font-mono text-xs">{l.batchNumber}</td>
                 <td className="p-3">{new Date(l.productionDate).toLocaleDateString()}</td>
                 <td className="p-3">{l.birdsReceived}</td>
