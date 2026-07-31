@@ -12,6 +12,7 @@ import {
   Phone, ExternalLink, Mail, AlertTriangle
 } from 'lucide-react';
 import Menu from '@/components/Menu';
+import IdleTimeoutProvider from '@/components/IdleTimeoutProvider';
 import { Toaster } from "react-hot-toast";
 import dynamic from "next/dynamic";
 import { buildApiUrl } from "@/lib/apiConfig";
@@ -430,6 +431,7 @@ export default function RootLayout({
         <ApiDebuggerInitializer />
         <Toaster position="top-right" />
         
+        <IdleTimeoutProvider>
         <div className="min-h-screen bg-background text-foreground flex flex-col">
           <LogoutDialog isOpen={showLogoutDialog} onClose={() => setShowLogoutDialog(false)} />
           
@@ -748,6 +750,7 @@ export default function RootLayout({
             </button>
           )}
         </div>
+        </IdleTimeoutProvider>
       </body>
     </html>
   );

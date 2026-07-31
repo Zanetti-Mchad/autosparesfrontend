@@ -6,8 +6,16 @@ import { Lock, Mail, ArrowLeft, Loader2, CheckCircle, Phone } from 'lucide-react
 import { sendSMS } from '@/lib/smsService';
 import { useForm } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
-import { fetchApi } from '@/lib/apiConfig';
+import { fetchApi, ApiError } from '@/lib/apiConfig';
 import dataCache from "../../utils/dataCache";
+
+const LOGIN_LOCK_STORAGE_KEY = "loginLockUntil";
+
+function formatLockCountdown(totalSeconds: number) {
+  const mins = Math.floor(totalSeconds / 60);
+  const secs = totalSeconds % 60;
+  return `${mins}:${secs.toString().padStart(2, "0")}`;
+}
 
 type FormData = {
   email: string;
@@ -68,9 +76,73 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [countdown, setCountdown] = useState(600);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [lockUntil, setLockUntil] = useState<number | null>(null);
+  const [lockRemainingSeconds, setLockRemainingSeconds] = useState(0);
   const router = useRouter();
   
   const { register, handleSubmit, watch, formState: { errors }, reset: resetForm } = useForm<FormData>();
+
+  const applyLoginLock = (untilMs: number, message?: string) => {
+    setLockUntil(untilMs);
+    try {
+      localStorage.setItem(LOGIN_LOCK_STORAGE_KEY, String(untilMs));
+    } catch {
+      /* ignore */
+    }
+    const secs = Math.max(0, Math.ceil((untilMs - Date.now()) / 1000));
+    setLockRemainingSeconds(secs);
+    setErrorMessage(
+      message ||
+        `Too many failed attempts. Try again in ${formatLockCountdown(secs)}.`
+    );
+  };
+
+  const clearLoginLock = () => {
+    setLockUntil(null);
+    setLockRemainingSeconds(0);
+    try {
+      localStorage.removeItem(LOGIN_LOCK_STORAGE_KEY);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  // Restore lock from localStorage on mount
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(LOGIN_LOCK_STORAGE_KEY);
+      if (!stored) return;
+      const until = Number(stored);
+      if (Number.isFinite(until) && until > Date.now()) {
+        applyLoginLock(until);
+      } else {
+        localStorage.removeItem(LOGIN_LOCK_STORAGE_KEY);
+      }
+    } catch {
+      /* ignore */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Tick lock countdown
+  useEffect(() => {
+    if (!lockUntil) return;
+    const tick = () => {
+      const secs = Math.max(0, Math.ceil((lockUntil - Date.now()) / 1000));
+      setLockRemainingSeconds(secs);
+      if (secs <= 0) {
+        clearLoginLock();
+        setErrorMessage(null);
+      } else {
+        setErrorMessage(
+          `Too many failed attempts. Try again in ${formatLockCountdown(secs)}.`
+        );
+      }
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [lockUntil]);
 
   // Resend OTP and restart countdown
   const startCountdown = async () => {
@@ -119,6 +191,10 @@ const Login = () => {
     await new Promise(resolve => setTimeout(resolve, 150));
     
     if (currentView === 'signin') {
+      if (lockUntil && lockUntil > Date.now()) {
+        setIsLoading(false);
+        return;
+      }
       try {
         interface LoginResponse {
           status?: { 
@@ -154,6 +230,8 @@ const Login = () => {
           })
         });
         console.log('Login response:', responseData);
+
+        clearLoginLock();
 
         // Extract tokens and user data
         const { accessToken, refreshToken, data: responseDataUser, user: userFromRoot } = responseData;
@@ -238,8 +316,28 @@ const Login = () => {
         return;
       } catch (err: any) {
         console.error('Login error:', err);
-        const message = err instanceof Error ? err.message : 'Login failed';
-        setErrorMessage(message);
+        if (err instanceof ApiError) {
+          const lockedUntilIso = err.body?.lockedUntil;
+          const retryAfter = err.body?.retryAfterSeconds;
+          if (err.status === 429 || lockedUntilIso) {
+            const untilMs = lockedUntilIso
+              ? new Date(lockedUntilIso).getTime()
+              : Date.now() + (Number(retryAfter) || 15 * 60) * 1000;
+            applyLoginLock(untilMs, err.returnMessage);
+          } else if (err.status === 401) {
+            const remaining = err.body?.attemptsRemaining;
+            setErrorMessage(
+              typeof remaining === "number"
+                ? `Invalid credentials. ${remaining} attempt${remaining === 1 ? "" : "s"} remaining.`
+                : err.returnMessage || "Invalid credentials"
+            );
+          } else {
+            setErrorMessage(err.returnMessage || "Login failed");
+          }
+        } else {
+          const message = err instanceof Error ? err.message : 'Login failed';
+          setErrorMessage(message);
+        }
       }
     } else if (currentView === 'forgot') {
       try {
@@ -492,7 +590,8 @@ const Login = () => {
                           id="email"
                           type="text"
                           autoComplete="email tel"
-                          className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          disabled={!!lockUntil && lockRemainingSeconds > 0}
+                          className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                           placeholder="Enter your email or phone"
                           {...register('email', { required: 'Email or phone is required' })}
                         />
@@ -523,7 +622,8 @@ const Login = () => {
                           id="password"
                           type="password"
                           autoComplete="current-password"
-                          className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          disabled={!!lockUntil && lockRemainingSeconds > 0}
+                          className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                           placeholder="••••••••"
                           {...register('password', { required: 'Password is required' })}
                         />
@@ -666,7 +766,7 @@ const Login = () => {
                 <motion.div variants={itemVariants} className="mt-6">
                   <button
                     type="submit"
-                    disabled={isLoading}
+                    disabled={isLoading || (currentView === 'signin' && !!lockUntil && lockRemainingSeconds > 0)}
                     className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-70 transition-colors"
                   >
                     {isLoading ? (
@@ -674,6 +774,8 @@ const Login = () => {
                         <Loader2 className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" />
                         Processing...
                       </>
+                    ) : currentView === 'signin' && lockUntil && lockRemainingSeconds > 0 ? (
+                      <>Locked — try again in {formatLockCountdown(lockRemainingSeconds)}</>
                     ) : (
                       <>
                         {currentView === 'signin' && 'Sign In'}

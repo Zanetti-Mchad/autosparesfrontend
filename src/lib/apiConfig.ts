@@ -55,6 +55,26 @@ export function getApiHeaders(additionalHeaders: Record<string, string> = {}): H
  * @param options - Fetch options
  * @returns Promise with the parsed response data
  */
+export class ApiError extends Error {
+  status: number;
+  body: any;
+  returnMessage: string;
+
+  constructor(status: number, body: any, fallbackMessage?: string) {
+    const returnMessage =
+      body?.status?.returnMessage ||
+      body?.message ||
+      body?.error ||
+      fallbackMessage ||
+      `API error (${status})`;
+    super(returnMessage);
+    this.name = "ApiError";
+    this.status = status;
+    this.body = body;
+    this.returnMessage = returnMessage;
+  }
+}
+
 export async function fetchApi<T = any>(
   endpoint: string, 
   options: RequestInit = {}
@@ -68,8 +88,14 @@ export async function fetchApi<T = any>(
   });
   
   if (!response.ok) {
-    const errorText = await response.text().catch(() => 'Unknown error');
-    throw new Error(`API error (${response.status}): ${errorText}`);
+    let body: any = null;
+    const errorText = await response.text().catch(() => "Unknown error");
+    try {
+      body = JSON.parse(errorText);
+    } catch {
+      body = { raw: errorText };
+    }
+    throw new ApiError(response.status, body, errorText);
   }
   
   return response.json();
