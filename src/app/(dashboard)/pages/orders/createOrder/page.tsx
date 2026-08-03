@@ -392,13 +392,13 @@ const CreateOrder = () => {
                     value={searchTerm}
                     onChange={handleSearchChange}
                     onFocus={() => searchTerm && setShowDropdown(true)}
-                    className="w-full form-input text-sm"
+                    className="w-full form-input text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white"
                     placeholder="Search by name or phone..."
                   />
                   
                   {/* Customer Dropdown */}
                   {showDropdown && filteredCustomers.length > 0 && (
-                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
                       {filteredCustomers.map(customer => (
                         <div
                           key={customer.id}
@@ -422,7 +422,7 @@ const CreateOrder = () => {
                     name="name"
                     value={customerInfo.name}
                     onChange={handleCustomerInfoChange}
-                    className="w-full form-input text-sm"
+                    className="w-full form-input text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white"
                     placeholder="John Doe"
                     required
                   />
@@ -434,7 +434,7 @@ const CreateOrder = () => {
                     name="email"
                     value={customerInfo.email}
                     onChange={handleCustomerInfoChange}
-                    className="w-full form-input text-sm"
+                    className="w-full form-input text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white"
                     placeholder="john@example.com"
                     required
                   />
@@ -446,7 +446,7 @@ const CreateOrder = () => {
                     name="phone"
                     value={customerInfo.phone}
                     onChange={handleCustomerInfoChange}
-                    className="w-full form-input text-sm"
+                    className="w-full form-input text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white"
                     placeholder="0700123456"
                     required
                   />
@@ -458,7 +458,7 @@ const CreateOrder = () => {
                     name="address"
                     value={customerInfo.address}
                     onChange={handleCustomerInfoChange}
-                    className="w-full form-input text-sm"
+                    className="w-full form-input text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white"
                     placeholder="123 Main St"
                     required
                   />
@@ -473,15 +473,15 @@ const CreateOrder = () => {
             <div className="space-y-4">
               <div className="space-y-2">
                 <label htmlFor="address" className="font-medium text-sm">Address</label>
-                <input type="text" id="address" name="address" value={customerInfo.address} onChange={handleCustomerInfoChange} className="w-full form-input" placeholder="e.g., Plot 123, Acacia Avenue" />
+                <input type="text" id="address" name="address" value={customerInfo.address} onChange={handleCustomerInfoChange} className="w-full form-input border border-gray-300 rounded-lg px-3 py-2 bg-white" placeholder="e.g., Plot 123, Acacia Avenue" />
               </div>
               <div className="space-y-2">
                 <label htmlFor="shippingCity" className="font-medium text-sm">City / Town</label>
-                <input type="text" id="shippingCity" name="shippingCity" value={customerInfo.shippingCity} onChange={handleCustomerInfoChange} className="w-full form-input" placeholder="e.g., Kampala" />
+                <input type="text" id="shippingCity" name="shippingCity" value={customerInfo.shippingCity} onChange={handleCustomerInfoChange} className="w-full form-input border border-gray-300 rounded-lg px-3 py-2 bg-white" placeholder="e.g., Kampala" />
               </div>
               <div className="space-y-2">
                 <label htmlFor="shippingDistrict" className="font-medium text-sm">District</label>
-                <input type="text" id="shippingDistrict" name="shippingDistrict" value={customerInfo.shippingDistrict} onChange={handleCustomerInfoChange} className="w-full form-input" placeholder="e.g., Nakawa" />
+                <input type="text" id="shippingDistrict" name="shippingDistrict" value={customerInfo.shippingDistrict} onChange={handleCustomerInfoChange} className="w-full form-input border border-gray-300 rounded-lg px-3 py-2 bg-white" placeholder="e.g., Nakawa" />
               </div>
             </div>
           </div>
@@ -497,10 +497,10 @@ const CreateOrder = () => {
           {/* Order Items List */}
           <div className="space-y-4">
             {orderItems.map((item, index) => (
-              <div key={item.id} className="grid grid-cols-1 md:grid-cols-8 gap-4 items-end">
+              <div key={item.id} className="grid grid-cols-1 md:grid-cols-8 gap-4 items-end rounded-xl border border-gray-300 bg-white p-4">
                 {/* Item Number */}
                 <div className="flex items-center justify-center">
-                  <div className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 font-medium">
+                  <div className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-300 bg-gray-50 font-medium">
                     {index + 1}
                   </div>
                 </div>
@@ -511,7 +511,7 @@ const CreateOrder = () => {
                   <select
                     value={item.productId}
                     onChange={(e) => handleProductSelect(item.id, e.target.value)}
-                    className="w-full form-input text-sm"
+                    className="w-full form-input text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white"
                     required
                   >
                     <option value="">-- Select --</option>
@@ -529,7 +529,7 @@ const CreateOrder = () => {
                   <select
                     value={item.size}
                     onChange={(e) => handleChange(item.id, 'size', e.target.value)}
-                    className="w-full form-input text-sm"
+                    className="w-full form-input text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white"
                     required
                   >
                     <option value="">Select Size</option>
@@ -548,7 +548,7 @@ const CreateOrder = () => {
                     type="number" 
                     value={item.purchasePrice} 
                     readOnly
-                    className="w-full form-input text-sm bg-gray-50" 
+                    className="w-full form-input text-sm border border-gray-300 rounded-lg px-3 py-2 bg-gray-50" 
                     placeholder="Cost"
                   />
                 </div>
@@ -560,7 +560,7 @@ const CreateOrder = () => {
                     type="number" 
                     value={item.sellingPrice} 
                     onChange={(e) => handleChange(item.id, 'sellingPrice', e.target.value)}
-                    className="w-full form-input text-sm" 
+                    className="w-full form-input text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white" 
                     placeholder="Price"
                     min="0"
                     step="0.01"
@@ -576,7 +576,7 @@ const CreateOrder = () => {
                     value={item.quantity} 
                     onChange={(e) => handleChange(item.id, 'quantity', parseInt(e.target.value) || 1)}
                     min="1" 
-                    className="w-full form-input text-sm" 
+                    className="w-full form-input text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white" 
                     required
                   />
                 </div>
@@ -584,7 +584,7 @@ const CreateOrder = () => {
                 {/* Item Total */}
                 <div className="space-y-2">
                   <label className="font-medium text-sm block">Total (UGX)</label>
-                  <div className="p-2 bg-gray-50 rounded border text-sm font-medium h-10 flex items-center">
+                  <div className="p-2 bg-gray-50 rounded-lg border border-gray-300 text-sm font-medium h-10 flex items-center px-3">
                     {item.sellingPrice 
                       ? `UGX ${calculateItemTotal(item).toLocaleString()}`
                       : '--'
@@ -598,7 +598,7 @@ const CreateOrder = () => {
                     <button
                       type="button"
                       onClick={() => removeItem(item.id)}
-                      className="text-red-500 hover:text-red-700"
+                      className="text-red-500 hover:text-red-700 border border-red-200 rounded-lg px-2 h-10"
                       title="Remove item"
                     >
                       ×
@@ -620,7 +620,7 @@ const CreateOrder = () => {
             </div>
 
             {/* Order Summary */}
-            <div className="mt-6 pt-4 border-t">
+            <div className="mt-6 pt-4 border-t border-gray-300">
               {/* VAT Toggle */}
               <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center">
@@ -664,7 +664,7 @@ const CreateOrder = () => {
           <div className="mt-6">
             <div className="space-y-2">
               <label htmlFor="status" className="font-medium text-sm">Order Status</label>
-              <select id="status" name="status" value={customerInfo.status} onChange={handleCustomerInfoChange} className="w-full form-input">
+              <select id="status" name="status" value={customerInfo.status} onChange={handleCustomerInfoChange} className="w-full form-input border border-gray-300 rounded-lg px-3 py-2 bg-white">
                 <option value="Pending">Pending</option>
                 <option value="Processing">Processing</option>
                 <option value="Shipped">Shipped</option>
