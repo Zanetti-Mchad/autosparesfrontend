@@ -26,8 +26,20 @@ type StoreOption = {
   productCount: number;
 };
 
+type PosProduct = Product & {
+  /** Best store to draw from among selected (highest qty) */
+  preferredStoreId: string;
+  preferredStoreName: string;
+  /** Qty available in preferred store */
+  preferredQty: number;
+  /** Sum across all selected stores */
+  totalInSelected: number;
+};
+
 type CartLine = {
   inventoryId: string;
+  storeId: string;
+  storeName: string;
   name: string;
   unitPrice: number;
   quantity: number;
@@ -72,6 +84,10 @@ function extractList(res: any): any[] {
   return [];
 }
 
+function cartKey(inventoryId: string, storeId: string) {
+  return `${inventoryId}::${storeId}`;
+}
+
 export default function PosPage() {
   const [catalog, setCatalog] = useState<Product[]>([]);
   const [storeQtyByStore, setStoreQtyByStore] = useState<
@@ -79,7 +95,10 @@ export default function PosPage() {
   >({});
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [stores, setStores] = useState<StoreOption[]>([]);
-  const [storeId, setStoreId] = useState("");
+  /** Explicit checked store IDs. Default = all stores (set after load). */
+  const [selectedStoreIds, setSelectedStoreIds] = useState<string[]>([]);
+  const [storeMenuOpen, setStoreMenuOpen] = useState(false);
+  const storeMenuRef = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState("");
   const [barcode, setBarcode] = useState("");
   const [cart, setCart] = useState<CartLine[]>([]);
@@ -90,26 +109,70 @@ export default function PosPage() {
   ]);
   const [submitting, setSubmitting] = useState(false);
   const [lastReceipt, setLastReceipt] = useState<any>(null);
+  const [lastReceiptStores, setLastReceiptStores] = useState<string[]>([]);
   const [business, setBusiness] = useState<BusinessInfo | null>(null);
   const barcodeRef = useRef<HTMLInputElement>(null);
   const receiptRef = useRef<HTMLDivElement>(null);
 
-  const selectedStore = useMemo(
-    () => stores.find((s) => s.id === storeId) || null,
-    [stores, storeId]
+  const allStoresMode =
+    stores.length > 0 &&
+    selectedStoreIds.length === stores.length &&
+    stores.every((s) => selectedStoreIds.includes(s.id));
+
+  const activeStoreIds = selectedStoreIds;
+
+  const selectedStores = useMemo(
+    () => stores.filter((s) => selectedStoreIds.includes(s.id)),
+    [stores, selectedStoreIds]
   );
 
-  /** Products available in the selected store only (qty from that store). */
-  const products = useMemo(() => {
-    if (!storeId) return [];
-    const qtyMap = storeQtyByStore[storeId] || {};
-    return catalog
-      .map((p) => ({
+  const storeDropdownLabel = useMemo(() => {
+    if (!stores.length) return "No stores with stock";
+    if (!selectedStoreIds.length) return "Select store";
+    if (allStoresMode) return "All stores";
+    if (selectedStoreIds.length === 1) {
+      return stores.find((s) => s.id === selectedStoreIds[0])?.name || "1 store";
+    }
+    return `${selectedStoreIds.length} stores selected`;
+  }, [stores, allStoresMode, selectedStoreIds]);
+
+  /** Products available in active store(s). */
+  const products = useMemo((): PosProduct[] => {
+    if (!activeStoreIds.length) return [];
+
+    const out: PosProduct[] = [];
+    for (const p of catalog) {
+      let totalInSelected = 0;
+      let preferredStoreId = "";
+      let preferredQty = 0;
+
+      for (const sid of activeStoreIds) {
+        const qty = storeQtyByStore[sid]?.[p.id] || 0;
+        if (qty <= 0) continue;
+        totalInSelected += qty;
+        if (qty > preferredQty) {
+          preferredQty = qty;
+          preferredStoreId = sid;
+        }
+      }
+
+      if (totalInSelected <= 0 || !preferredStoreId) continue;
+
+      const storeName =
+        stores.find((s) => s.id === preferredStoreId)?.name || "Store";
+
+      out.push({
         ...p,
-        quantity: qtyMap[p.id] || 0,
-      }))
-      .filter((p) => p.quantity > 0);
-  }, [catalog, storeId, storeQtyByStore]);
+        quantity: totalInSelected,
+        preferredStoreId,
+        preferredStoreName: storeName,
+        preferredQty,
+        totalInSelected,
+      });
+    }
+
+    return out;
+  }, [catalog, activeStoreIds, storeQtyByStore, stores]);
 
   const load = useCallback(async () => {
     try {
@@ -185,9 +248,13 @@ export default function PosPage() {
 
       setStores(availableStores);
 
-      setStoreId((prev) => {
-        if (prev && availableStores.some((s) => s.id === prev)) return prev;
-        return "";
+      // Default: all stores checked. Keep prior checks that still exist; if none left, select all.
+      setSelectedStoreIds((prev) => {
+        const stillValid = prev.filter((id) =>
+          availableStores.some((s) => s.id === id)
+        );
+        if (stillValid.length > 0) return stillValid;
+        return availableStores.map((s) => s.id);
       });
 
       const biz = bizRes?.data;
@@ -211,13 +278,31 @@ export default function PosPage() {
     barcodeRef.current?.focus();
   }, [load]);
 
-  // If selected store disappears (now empty), clear cart
+  // Close store dropdown on outside click
   useEffect(() => {
-    if (storeId && !stores.some((s) => s.id === storeId)) {
-      setStoreId("");
-      setCart([]);
+    if (!storeMenuOpen) return;
+    const onDoc = (e: MouseEvent) => {
+      if (!storeMenuRef.current?.contains(e.target as Node)) {
+        setStoreMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [storeMenuOpen]);
+
+  // Drop cart lines whose store is no longer active
+  useEffect(() => {
+    if (!activeStoreIds.length) {
+      if (cart.length) setCart([]);
+      return;
     }
-  }, [stores, storeId]);
+    const allowed = new Set(activeStoreIds);
+    setCart((prev) => {
+      const next = prev.filter((l) => allowed.has(l.storeId));
+      return next.length === prev.length ? prev : next;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeStoreIds.join("|")]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -228,50 +313,113 @@ export default function PosPage() {
           p.name.toLowerCase().includes(q) ||
           p.sku?.toLowerCase().includes(q) ||
           p.barcode?.includes(q) ||
-          p.cutType?.toLowerCase().includes(q)
+          p.cutType?.toLowerCase().includes(q) ||
+          p.preferredStoreName.toLowerCase().includes(q)
       )
       .slice(0, 80);
   }, [products, query]);
 
-  const handleStoreChange = (nextStoreId: string) => {
-    if (cart.length > 0 && nextStoreId !== storeId) {
-      const ok = window.confirm(
-        "Changing store will clear the current cart. Continue?"
-      );
-      if (!ok) return;
-      setCart([]);
+  const chooseAllStores = () => {
+    if (allStoresMode) {
+      // Uncheck All → uncheck every store
+      if (cart.length) {
+        const ok = window.confirm("Unchecking all stores will clear the cart. Continue?");
+        if (!ok) return;
+        setCart([]);
+      }
+      setSelectedStoreIds([]);
+      return;
     }
-    setStoreId(nextStoreId);
+    // Check All → check every store
+    setSelectedStoreIds(stores.map((s) => s.id));
   };
 
-  const storeQtyFor = (inventoryId: string) =>
-    (storeId && storeQtyByStore[storeId]?.[inventoryId]) || 0;
+  const toggleStore = (id: string) => {
+    setSelectedStoreIds((prev) => {
+      const exists = prev.includes(id);
+      if (exists) {
+        if (cart.some((l) => l.storeId === id)) {
+          const ok = window.confirm(
+            "Unchecking this store will remove its items from the cart. Continue?"
+          );
+          if (!ok) return prev;
+        }
+        return prev.filter((x) => x !== id);
+      }
+      return [...prev, id];
+    });
+  };
 
-  const addToCart = (p: Product) => {
-    if (!storeId) {
-      toast.error("Select the store you are selling from first");
+  const storeQtyFor = (inventoryId: string, storeId: string) =>
+    storeQtyByStore[storeId]?.[inventoryId] || 0;
+
+  const addToCart = (p: PosProduct) => {
+    if (!activeStoreIds.length) {
+      toast.error("No stores with stock available");
       return;
     }
-    const available = storeQtyFor(p.id);
-    if (available <= 0) {
-      toast.error("Out of stock in this store");
-      return;
+
+    // Prefer store with most stock among active; if cart already has a line for this
+    // product+store, keep filling that store until empty, then move to next.
+    let targetStoreId = p.preferredStoreId;
+    let available = p.preferredQty;
+
+    const existingForProduct = cart.filter((l) => l.inventoryId === p.id);
+    for (const line of existingForProduct) {
+      if (line.quantity < line.stock) {
+        targetStoreId = line.storeId;
+        available = storeQtyFor(p.id, line.storeId);
+        break;
+      }
     }
+
+    const usedInCart = (sid: string) =>
+      existingForProduct.find((l) => l.storeId === sid)?.quantity || 0;
+
+    if (usedInCart(targetStoreId) >= available) {
+      let found = false;
+      const ranked = activeStoreIds
+        .map((sid) => ({ sid, qty: storeQtyFor(p.id, sid) }))
+        .filter((x) => x.qty > 0)
+        .sort((a, b) => b.qty - a.qty);
+      for (const { sid, qty } of ranked) {
+        if (usedInCart(sid) < qty) {
+          targetStoreId = sid;
+          available = qty;
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        toast.error("Not enough stock in the selected stores");
+        return;
+      }
+    }
+
+    const storeName =
+      stores.find((s) => s.id === targetStoreId)?.name || p.preferredStoreName;
+
     setCart((prev) => {
-      const existing = prev.find((l) => l.inventoryId === p.id);
+      const existing = prev.find(
+        (l) => l.inventoryId === p.id && l.storeId === targetStoreId
+      );
       if (existing) {
         if (existing.quantity >= available) {
-          toast.error("Not enough stock in this store");
+          toast.error(`Not enough stock in ${storeName}`);
           return prev;
         }
         return prev.map((l) =>
-          l.inventoryId === p.id ? { ...l, quantity: l.quantity + 1, stock: available } : l
+          l.inventoryId === p.id && l.storeId === targetStoreId
+            ? { ...l, quantity: l.quantity + 1, stock: available }
+            : l
         );
       }
       return [
         ...prev,
         {
           inventoryId: p.id,
+          storeId: targetStoreId,
+          storeName,
           name: p.name,
           unitPrice: p.price,
           quantity: 1,
@@ -282,8 +430,8 @@ export default function PosPage() {
   };
 
   const scanBarcode = async () => {
-    if (!storeId) {
-      toast.error("Select the store you are selling from first");
+    if (!activeStoreIds.length) {
+      toast.error("No stores with stock available");
       return;
     }
     const code = barcode.trim();
@@ -291,13 +439,13 @@ export default function PosPage() {
     try {
       const res = await fetchApi(`/inventory/inventory/barcode/${encodeURIComponent(code)}`);
       if (res?.data) {
-        const p = res.data as Product;
-        const available = storeQtyFor(String(p.id));
-        if (available <= 0) {
-          toast.error("This item is not in stock at the selected store");
+        const raw = res.data as Product;
+        const match = products.find((p) => p.id === String(raw.id));
+        if (!match) {
+          toast.error("This item is not in stock in the selected stores");
           return;
         }
-        addToCart({ ...p, id: String(p.id), quantity: available });
+        addToCart(match);
         setBarcode("");
         barcodeRef.current?.focus();
       }
@@ -313,15 +461,17 @@ export default function PosPage() {
   const balance = total - paid;
 
   const checkout = async () => {
-    if (!storeId) return toast.error("Select the store you are selling from first");
+    if (!activeStoreIds.length) {
+      return toast.error("No stores with stock available");
+    }
     if (!cart.length) return toast.error("Cart is empty");
     if (paid + 0.01 < total) return toast.error("Payment is less than total");
 
     for (const line of cart) {
-      const available = storeQtyFor(line.inventoryId);
+      const available = storeQtyFor(line.inventoryId, line.storeId);
       if (line.quantity > available) {
         return toast.error(
-          `Not enough stock in this store for ${line.name}. Available: ${available}`
+          `Not enough stock in ${line.storeName} for ${line.name}. Available: ${available}`
         );
       }
     }
@@ -329,32 +479,97 @@ export default function PosPage() {
     setSubmitting(true);
     try {
       const selected = customers.find((c) => c.id === customerId);
-      const res = await fetchApi("/orders", {
-        method: "POST",
-        body: JSON.stringify({
-          source: "pos",
-          status: "Completed",
-          storeId,
-          customerId: customerId || undefined,
-          customer: selected
-            ? {
-                name: selected.companyName || selected.name,
-                phone: selected.phone,
-              }
-            : { name: "Walk-in Customer" },
-          items: cart.map((l) => ({
-            inventoryId: l.inventoryId,
-            quantity: l.quantity,
-            sellingPrice: l.unitPrice,
-          })),
-          discountAmount: discount,
-          payments: payments
-            .filter((p) => parseFloat(p.amount) > 0)
-            .map((p) => ({ method: p.method, amount: parseFloat(p.amount) })),
-        }),
+      const customerPayload = selected
+        ? {
+            name: selected.companyName || selected.name,
+            phone: selected.phone,
+          }
+        : { name: "Walk-in Customer" };
+
+      const paymentRows = payments
+        .filter((p) => parseFloat(p.amount) > 0)
+        .map((p) => ({ method: p.method, amount: parseFloat(p.amount) }));
+
+      // One order per store (backend accepts a single storeId per order)
+      const byStore = new Map<string, CartLine[]>();
+      for (const line of cart) {
+        const list = byStore.get(line.storeId) || [];
+        list.push(line);
+        byStore.set(line.storeId, list);
+      }
+
+      const storeGroups = Array.from(byStore.entries());
+      const createdOrders: any[] = [];
+      let paymentsRemaining = paymentRows.map((p) => ({ ...p }));
+
+      for (let gi = 0; gi < storeGroups.length; gi++) {
+        const [storeId, lines] = storeGroups[gi];
+        const groupSub = lines.reduce((s, l) => s + l.unitPrice * l.quantity, 0);
+        const groupDisc =
+          subtotal > 0 ? Math.round((discount * groupSub) / subtotal) : 0;
+        const groupTotal = Math.max(0, groupSub - groupDisc);
+
+        // Assign payments to this group (last group gets remainder)
+        let groupPayments: { method: string; amount: number }[] = [];
+        if (gi === storeGroups.length - 1) {
+          groupPayments = paymentsRemaining.filter((p) => p.amount > 0);
+        } else if (groupTotal > 0 && paymentsRemaining.length) {
+          let need = groupTotal;
+          const assigned: { method: string; amount: number }[] = [];
+          for (const p of paymentsRemaining) {
+            if (need <= 0) break;
+            const take = Math.min(p.amount, need);
+            if (take > 0) {
+              assigned.push({ method: p.method, amount: take });
+              p.amount -= take;
+              need -= take;
+            }
+          }
+          groupPayments = assigned;
+        }
+
+        const res = await fetchApi("/orders", {
+          method: "POST",
+          body: JSON.stringify({
+            source: "pos",
+            status: "Completed",
+            storeId,
+            customerId: customerId || undefined,
+            customer: customerPayload,
+            items: lines.map((l) => ({
+              inventoryId: l.inventoryId,
+              quantity: l.quantity,
+              sellingPrice: l.unitPrice,
+            })),
+            discountAmount: groupDisc,
+            payments: groupPayments,
+          }),
+        });
+        createdOrders.push(res.data);
+      }
+
+      const primary = createdOrders[0];
+      const mergedItems = createdOrders.flatMap((o) => o?.items || []);
+      const mergedTotal = createdOrders.reduce((s, o) => s + (o?.total || 0), 0);
+      setLastReceipt({
+        ...primary,
+        orderNumber:
+          createdOrders.length > 1
+            ? createdOrders.map((o) => o?.orderNumber).filter(Boolean).join(" + ")
+            : primary?.orderNumber,
+        items: mergedItems,
+        total: mergedTotal,
       });
-      setLastReceipt(res.data);
-      toast.success(`Sale ${res.data?.orderNumber || ""} completed`);
+      setLastReceiptStores(
+        storeGroups.map(
+          ([sid]) => stores.find((s) => s.id === sid)?.name || sid
+        )
+      );
+      toast.success(
+        createdOrders.length > 1
+          ? `Sale completed (${createdOrders.length} stores)`
+          : `Sale ${primary?.orderNumber || ""} completed`
+      );
       setCart([]);
       setPayments([{ method: "Cash", amount: "" }]);
       setDiscountAmount("0");
@@ -387,7 +602,9 @@ export default function PosPage() {
       business?.telephone ? `Tel: ${business.telephone}` : null,
       business?.email ? `Email: ${business.email}` : null,
       business?.tin ? `TIN: ${business.tin}` : null,
-      selectedStore ? `Store: ${selectedStore.name}` : null,
+      lastReceiptStores.length
+        ? `Store: ${lastReceiptStores.join(", ")}`
+        : null,
       `Receipt: ${lastReceipt.orderNumber}`,
       `Total: ${money(lastReceipt.total)}`,
       ...(lastReceipt.items || []).map(
@@ -400,68 +617,115 @@ export default function PosPage() {
     window.open(url, "_blank");
   };
 
+  const hasStoresSelected = activeStoreIds.length > 0;
+
   return (
     <div className="p-4 md:p-6 space-y-4">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Point of Sale</h1>
           <p className="text-sm text-gray-500">
-            {businessDisplayName(business)} · sell from a store that has stock
+            {businessDisplayName(business)} · sell from store stock
           </p>
         </div>
       </div>
 
       <div
         className={`rounded-xl border p-4 flex flex-col sm:flex-row sm:items-center gap-3 ${
-          storeId
+          hasStoresSelected
             ? "bg-emerald-50 border-emerald-200"
             : "bg-amber-50 border-amber-300"
         }`}
       >
         <div className="flex items-center gap-2 shrink-0">
-          <Store className={`w-5 h-5 ${storeId ? "text-emerald-600" : "text-amber-600"}`} />
+          <Store
+            className={`w-5 h-5 ${
+              hasStoresSelected ? "text-emerald-600" : "text-amber-600"
+            }`}
+          />
           <div>
             <div className="text-sm font-semibold text-gray-800">Selling from store</div>
             <div className="text-xs text-gray-500">
-              {storeId
-                ? `Only items in ${selectedStore?.name || "this store"} · stock reduces here`
-                : "Pick a store with stock (empty stores are hidden)"}
+              {allStoresMode
+                ? "All stores checked"
+                : selectedStoreIds.length
+                  ? `Selected: ${selectedStores.map((s) => s.name).join(", ")}`
+                  : "Check All stores or pick stores in the dropdown"}
             </div>
           </div>
         </div>
-        <select
-          className="w-full sm:max-w-md border border-gray-300 rounded-lg px-3 py-2.5 bg-white font-medium"
-          value={storeId}
-          onChange={(e) => handleStoreChange(e.target.value)}
-        >
-          <option value="">— Select store —</option>
-          {stores.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.name} · {s.productCount} item{s.productCount === 1 ? "" : "s"} ·{" "}
-              {s.totalQty} qty
-            </option>
-          ))}
-        </select>
-        {!stores.length && (
-          <p className="text-xs text-amber-700">
-            No stores with stock. Add stock under Stock → Add Stock (choose a store).
-          </p>
-        )}
+
+        <div className="relative w-full sm:max-w-md" ref={storeMenuRef}>
+          <button
+            type="button"
+            onClick={() => setStoreMenuOpen((o) => !o)}
+            className="w-full border border-gray-300 rounded-lg px-3 py-2.5 bg-white font-medium text-left flex items-center justify-between gap-2"
+          >
+            <span className="truncate">{storeDropdownLabel}</span>
+            <span className="text-gray-400 text-xs shrink-0">
+              {storeMenuOpen ? "▲" : "▼"}
+            </span>
+          </button>
+
+          {storeMenuOpen && (
+            <div className="absolute z-30 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-64 overflow-auto">
+              <label className="flex items-center gap-2 px-3 py-2.5 border-b cursor-pointer hover:bg-gray-50">
+                <input
+                  type="checkbox"
+                  className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                  checked={allStoresMode}
+                  onChange={chooseAllStores}
+                />
+                <span className="font-medium text-sm">All stores</span>
+              </label>
+              {stores.map((s) => {
+                const checked = selectedStoreIds.includes(s.id);
+                return (
+                  <label
+                    key={s.id}
+                    className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-50 border-b last:border-b-0"
+                  >
+                    <input
+                      type="checkbox"
+                      className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                      checked={checked}
+                      onChange={() => toggleStore(s.id)}
+                    />
+                    <span className="text-sm min-w-0">
+                      <span className="block truncate">{s.name}</span>
+                      <span className="text-[11px] text-gray-500">
+                        {s.productCount} item{s.productCount === 1 ? "" : "s"} · {s.totalQty}{" "}
+                        qty
+                      </span>
+                    </span>
+                  </label>
+                );
+              })}
+              {!stores.length && (
+                <p className="px-3 py-2 text-xs text-amber-700">
+                  No stores with stock. Add stock under Stock → Add Stock.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
         <div
-          className={`xl:col-span-2 space-y-3 ${!storeId ? "opacity-60 pointer-events-none" : ""}`}
+          className={`xl:col-span-2 space-y-3 ${
+            !hasStoresSelected ? "opacity-60 pointer-events-none" : ""
+          }`}
         >
           <div className="flex gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 className="w-full pl-9 pr-3 py-2 border rounded-lg"
-                placeholder="Search products in this store..."
+                placeholder="Search products..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                disabled={!storeId}
+                disabled={!hasStoresSelected}
               />
             </div>
             <input
@@ -471,11 +735,11 @@ export default function PosPage() {
               value={barcode}
               onChange={(e) => setBarcode(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && scanBarcode()}
-              disabled={!storeId}
+              disabled={!hasStoresSelected}
             />
             <button
               onClick={scanBarcode}
-              disabled={!storeId}
+              disabled={!hasStoresSelected}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50"
             >
               Add
@@ -483,16 +747,16 @@ export default function PosPage() {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 max-h-[60vh] overflow-y-auto">
-            {storeId && filtered.length === 0 && (
+            {hasStoresSelected && filtered.length === 0 && (
               <div className="col-span-full text-sm text-gray-500 border rounded-xl p-6 text-center bg-white">
-                No products with stock in this store.
+                No products with stock in the selected stores.
               </div>
             )}
             {filtered.map((p) => (
               <button
                 key={p.id}
                 onClick={() => addToCart(p)}
-                disabled={!storeId}
+                disabled={!hasStoresSelected}
                 className="text-left border rounded-xl p-3 hover:border-blue-500 hover:bg-blue-50 transition disabled:cursor-not-allowed bg-white"
               >
                 <div className="font-medium text-sm line-clamp-2">{p.name}</div>
@@ -501,8 +765,8 @@ export default function PosPage() {
                 </div>
                 <div className="mt-2 flex justify-between text-sm">
                   <span className="font-semibold text-blue-700">{money(p.price)}</span>
-                  <span className={p.quantity <= 10 ? "text-red-600" : "text-gray-500"}>
-                    {p.quantity} in store
+                  <span className={p.totalInSelected <= 10 ? "text-red-600" : "text-gray-500"}>
+                    {p.totalInSelected} avail
                   </span>
                 </div>
               </button>
@@ -510,11 +774,18 @@ export default function PosPage() {
           </div>
         </div>
 
-        <div className="border rounded-xl p-4 bg-white shadow-sm space-y-3">
+        <div className="border rounded-xl p-4 bg-white shadow-sm space-y-3 min-w-0 overflow-hidden">
           <h2 className="font-semibold text-lg">Cart</h2>
-          {selectedStore && (
+          {hasStoresSelected && (
             <div className="text-xs rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 px-3 py-2">
-              Selling from: <span className="font-semibold">{selectedStore.name}</span>
+              Selling from:{" "}
+              <span className="font-semibold">
+                {allStoresMode
+                  ? "All stores"
+                  : selectedStores.length
+                    ? selectedStores.map((s) => s.name).join(", ")
+                    : "None"}
+              </span>
             </div>
           )}
           <select
@@ -532,9 +803,13 @@ export default function PosPage() {
 
           <div className="space-y-2 max-h-56 overflow-y-auto">
             {cart.map((l) => (
-              <div key={l.inventoryId} className="flex items-center gap-2 text-sm border-b pb-2">
-                <div className="flex-1">
-                  <div className="font-medium">{l.name}</div>
+              <div
+                key={cartKey(l.inventoryId, l.storeId)}
+                className="flex items-center gap-2 text-sm border-b pb-2"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium truncate">{l.name}</div>
+                  <div className="text-[11px] text-emerald-700">{l.storeName}</div>
                   <div className="text-gray-500">{money(l.unitPrice)}</div>
                 </div>
                 <button
@@ -542,7 +817,7 @@ export default function PosPage() {
                   onClick={() =>
                     setCart((prev) =>
                       prev.map((x) =>
-                        x.inventoryId === l.inventoryId
+                        x.inventoryId === l.inventoryId && x.storeId === l.storeId
                           ? { ...x, quantity: Math.max(1, x.quantity - 1) }
                           : x
                       )
@@ -557,7 +832,9 @@ export default function PosPage() {
                   onClick={() =>
                     setCart((prev) =>
                       prev.map((x) =>
-                        x.inventoryId === l.inventoryId && x.quantity < x.stock
+                        x.inventoryId === l.inventoryId &&
+                        x.storeId === l.storeId &&
+                        x.quantity < x.stock
                           ? { ...x, quantity: x.quantity + 1 }
                           : x
                       )
@@ -569,7 +846,12 @@ export default function PosPage() {
                 <button
                   className="p-1 text-red-500"
                   onClick={() =>
-                    setCart((prev) => prev.filter((x) => x.inventoryId !== l.inventoryId))
+                    setCart((prev) =>
+                      prev.filter(
+                        (x) =>
+                          !(x.inventoryId === l.inventoryId && x.storeId === l.storeId)
+                      )
+                    )
                   }
                 >
                   <Trash2 className="w-4 h-4" />
@@ -601,9 +883,9 @@ export default function PosPage() {
           <div className="space-y-2">
             <div className="text-sm font-medium">Payments</div>
             {payments.map((p, i) => (
-              <div key={i} className="flex gap-2">
+              <div key={i} className="flex gap-2 min-w-0 w-full">
                 <select
-                  className="border rounded px-2 py-1"
+                  className="shrink-0 w-[7.5rem] max-w-[40%] border rounded px-2 py-1"
                   value={p.method}
                   onChange={(e) =>
                     setPayments((prev) =>
@@ -616,7 +898,7 @@ export default function PosPage() {
                   <option>Card</option>
                 </select>
                 <input
-                  className="flex-1 border rounded px-2 py-1"
+                  className="min-w-0 flex-1 border rounded px-2 py-1 w-full"
                   placeholder="Amount"
                   value={p.amount}
                   onChange={(e) =>
@@ -647,7 +929,7 @@ export default function PosPage() {
           </div>
 
           <button
-            disabled={submitting || !cart.length || !storeId}
+            disabled={submitting || !cart.length || !hasStoresSelected}
             onClick={checkout}
             className="w-full py-3 rounded-xl bg-green-600 text-white font-semibold disabled:opacity-50"
           >
@@ -698,13 +980,15 @@ export default function PosPage() {
             </div>
             <hr />
             <p>Receipt: {lastReceipt.orderNumber}</p>
-            {selectedStore && <p style={{ fontSize: 12 }}>Store: {selectedStore.name}</p>}
+            {lastReceiptStores.length > 0 && (
+              <p style={{ fontSize: 12 }}>Store: {lastReceiptStores.join(", ")}</p>
+            )}
             <p style={{ fontSize: 12 }}>
               {formatDisplayDateTime(lastReceipt.createdAt || Date.now())}
             </p>
             <hr />
             {(lastReceipt.items || []).map((i: any) => (
-              <p key={i.id}>
+              <p key={i.id || `${i.productName}-${i.quantity}`}>
                 {i.productName} x{i.quantity} — {money(i.totalPrice)}
               </p>
             ))}
