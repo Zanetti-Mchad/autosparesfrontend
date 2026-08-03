@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { fetchApi } from '@/lib/apiConfig';
-import { PlusCircle, Package, User, Mail, Phone, MapPin, DollarSign, Hash } from 'lucide-react';
+import { PlusCircle, Package, User, Mail, Phone, MapPin, DollarSign, Hash, Store } from 'lucide-react';
 
 interface InventoryItem {
   id: string;
@@ -58,6 +58,11 @@ interface Customer extends CustomerInfo {
   contactPerson?: string | null;
 }
 
+interface StoreOption {
+  id: string;
+  name: string;
+}
+
 interface OrderItem {
   id: string;
   productId: string;
@@ -97,11 +102,13 @@ const CreateOrder = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [includeVat, setIncludeVat] = useState(false);
   const vatRate = 0.18; // 18% VAT
+  const [stores, setStores] = useState<StoreOption[]>([]);
+  const [storeId, setStoreId] = useState('');
   
   // State for customers from database
   const [customers, setCustomers] = useState<Customer[]>([]);
   
-  // Fetch customers from database (clients and companies)
+  // Fetch customers and stores from database
   useEffect(() => {
     const fetchCustomers = async () => {
       try {
@@ -140,7 +147,29 @@ const CreateOrder = () => {
       }
     };
 
+    const fetchStores = async () => {
+      try {
+        const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+        const data = await fetchApi('/catalog/stores', {
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          } as any
+        });
+        const items = (data?.data?.items || data?.items || data?.data || data || []) as any[];
+        setStores(
+          (Array.isArray(items) ? items : []).map((s) => ({
+            id: String(s.id),
+            name: s.name || 'Unnamed store',
+          }))
+        );
+      } catch (error) {
+        console.error('Error fetching stores:', error);
+        setStores([]);
+      }
+    };
+
     fetchCustomers();
+    fetchStores();
   }, []);
   const [searchTerm, setSearchTerm] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
@@ -273,9 +302,14 @@ const CreateOrder = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
+    if (!storeId) {
+      alert('Select the store you are selling from first.');
+      return;
+    }
 
     const payload = {
+      storeId,
       customer: {
         name: customerInfo.name,
         email: customerInfo.email,
@@ -378,6 +412,44 @@ const CreateOrder = () => {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
+        <div
+          className={`p-6 rounded-2xl border flex flex-col sm:flex-row sm:items-center gap-4 ${
+            storeId
+              ? 'bg-emerald-50/80 border-emerald-200'
+              : 'bg-amber-50/80 border-amber-300'
+          }`}
+        >
+          <div className="flex items-center gap-3 shrink-0">
+            <Store className={`w-6 h-6 ${storeId ? 'text-emerald-600' : 'text-amber-600'}`} />
+            <div>
+              <h2 className="text-lg font-semibold">Selling from store</h2>
+              <p className="text-sm text-muted-foreground">
+                {storeId
+                  ? 'Stock will reduce from the selected store'
+                  : 'Select a store before creating the order'}
+              </p>
+            </div>
+          </div>
+          <select
+            value={storeId}
+            onChange={(e) => setStoreId(e.target.value)}
+            className="w-full sm:max-w-md form-input border border-gray-300 rounded-lg px-3 py-2.5 bg-white font-medium"
+            required
+          >
+            <option value="">— Select store —</option>
+            {stores.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+          {!stores.length && (
+            <p className="text-xs text-amber-700">
+              No stores found. Create one under Stock → Stores.
+            </p>
+          )}
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Customer Information */}
           <div className="bg-secondary/30 p-6 rounded-2xl border border-border/50">
