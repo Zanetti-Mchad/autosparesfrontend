@@ -1,4 +1,5 @@
 "use client";
+import { formatDisplayDate } from '@/lib/formatDate';
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -243,6 +244,9 @@ const DeleteUser = () => {
             <table className="min-w-full divide-y divide-border">
               <thead className="bg-secondary/20">
                 <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-12">
+                    #
+                  </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     User
                   </th>
@@ -261,8 +265,11 @@ const DeleteUser = () => {
                 </tr>
               </thead>
               <tbody className="bg-card divide-y divide-border">
-                {filteredUsers.map((user) => (
+                {filteredUsers.map((user, index) => (
                   <tr key={user.id} className="hover:bg-secondary/10 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground tabular-nums">
+                      {index + 1}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="w-10 h-10 rounded-full mr-3 overflow-hidden">
@@ -306,7 +313,7 @@ const DeleteUser = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                       {user.lastLogin 
-                        ? new Date(user.lastLogin).toLocaleDateString() 
+                        ? formatDisplayDate(user.lastLogin) 
                         : 'Never'
                       }
                     </td>
@@ -395,7 +402,7 @@ const DeleteUser = () => {
                   <p className="text-gray-500">Last Login</p>
                   <p className="font-medium text-gray-900">
                     {userToDelete.lastLogin 
-                      ? new Date(userToDelete.lastLogin).toLocaleDateString() 
+                      ? formatDisplayDate(userToDelete.lastLogin) 
                       : 'Never'
                     }
                   </p>

@@ -127,7 +127,7 @@ const CreateQuote = () => {
     validUntil: 30,
     includeVat: false,
     notes: '',
-    terms: 'Payment on delivery', // Changed default value here
+    terms: 'Cash payment', // Changed default value here
     status: 'Draft'
   });
 
@@ -456,7 +456,7 @@ const CreateQuote = () => {
         validUntil: 30,
         includeVat: false,
         notes: '',
-        terms: 'Payment on delivery', // Reset to 'Payment on delivery'
+        terms: 'Cash payment', // Reset to cash payment
         status: 'Draft'
       });
 
@@ -512,12 +512,12 @@ const CreateQuote = () => {
                     value={searchTerm}
                     onChange={handleSearchChange}
                     onFocus={() => searchTerm && setShowCustomerDropdown(true)}
-                    className="w-full form-input text-sm"
+                    className="w-full form-input text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white"
                     placeholder="Search by name or phone..."
                   />
 
                   {showCustomerDropdown && filteredCustomers.length > 0 && (
-                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
                       {filteredCustomers.map(customer => (
                         <div
                           key={customer.id}
@@ -541,7 +541,7 @@ const CreateQuote = () => {
                     name="name"
                     value={customerInfo.name}
                     onChange={handleCustomerInfoChange}
-                    className="w-full form-input text-sm"
+                    className="w-full form-input text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white"
                     placeholder="John Doe"
                     required
                   />
@@ -553,7 +553,7 @@ const CreateQuote = () => {
                     name="email"
                     value={customerInfo.email}
                     onChange={handleCustomerInfoChange}
-                    className="w-full form-input text-sm"
+                    className="w-full form-input text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white"
                     placeholder="john@example.com"
                     required
                   />
@@ -565,7 +565,7 @@ const CreateQuote = () => {
                     name="phone"
                     value={customerInfo.phone}
                     onChange={handleCustomerInfoChange}
-                    className="w-full form-input text-sm"
+                    className="w-full form-input text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white"
                     placeholder="0700123456"
                     required
                   />
@@ -577,7 +577,7 @@ const CreateQuote = () => {
                     name="company"
                     value={customerInfo.company}
                     onChange={handleCustomerInfoChange}
-                    className="w-full form-input text-sm"
+                    className="w-full form-input text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white"
                     placeholder="Optional Company Name"
                   />
                 </div>
@@ -590,15 +590,15 @@ const CreateQuote = () => {
             <div className="space-y-4">
               <div className="space-y-2">
                 <label htmlFor="address" className="font-medium text-sm">Address</label>
-                <input type="text" id="address" name="address" value={customerInfo.address} onChange={handleCustomerInfoChange} className="w-full form-input" placeholder="e.g., Plot 123, Acacia Avenue" required/>
+                <input type="text" id="address" name="address" value={customerInfo.address} onChange={handleCustomerInfoChange} className="w-full form-input border border-gray-300 rounded-lg px-3 py-2 bg-white" placeholder="e.g., Plot 123, Acacia Avenue" required/>
               </div>
               <div className="space-y-2">
                 <label htmlFor="shippingCity" className="font-medium text-sm">City / Town</label>
-                <input type="text" id="shippingCity" name="shippingCity" value={customerInfo.shippingCity} onChange={handleCustomerInfoChange} className="w-full form-input" placeholder="e.g., Kampala" required/>
+                <input type="text" id="shippingCity" name="shippingCity" value={customerInfo.shippingCity} onChange={handleCustomerInfoChange} className="w-full form-input border border-gray-300 rounded-lg px-3 py-2 bg-white" placeholder="e.g., Kampala" required/>
               </div>
               <div className="space-y-2">
                 <label htmlFor="shippingDistrict" className="font-medium text-sm">District</label>
-                <input type="text" id="shippingDistrict" name="shippingDistrict" value={customerInfo.shippingDistrict} onChange={handleCustomerInfoChange} className="w-full form-input" placeholder="e.g., Nakawa" required/>
+                <input type="text" id="shippingDistrict" name="shippingDistrict" value={customerInfo.shippingDistrict} onChange={handleCustomerInfoChange} className="w-full form-input border border-gray-300 rounded-lg px-3 py-2 bg-white" placeholder="e.g., Nakawa" required/>
               </div>
             </div>
           </div>
@@ -613,9 +613,12 @@ const CreateQuote = () => {
 
           <div className="space-y-4">
             {quoteItems.map((item, index) => (
-              <div key={item.id} className="grid grid-cols-1 md:grid-cols-8 gap-4 items-end">
+              <div
+                key={item.id}
+                className="grid grid-cols-1 md:grid-cols-8 gap-4 items-end rounded-xl border border-gray-300 bg-white p-4"
+              >
                 <div className="flex items-center justify-center">
-                  <div className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 font-medium">
+                  <div className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-300 bg-gray-50 font-medium">
                     {index + 1}
                   </div>
                 </div>
@@ -625,7 +628,7 @@ const CreateQuote = () => {
                   <select
                     value={item.productId}
                     onChange={(e) => handleProductSelect(item.id, e.target.value)}
-                    className="w-full form-input text-sm"
+                    className="w-full form-input text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white"
                     required
                   >
                     <option value="">-- Select --</option>
@@ -642,7 +645,7 @@ const CreateQuote = () => {
                   <select
                     value={item.size}
                     onChange={(e) => updateQuoteItem(item.id, 'size', e.target.value)}
-                    className="w-full form-input text-sm"
+                    className="w-full form-input text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white"
                     required
                   >
                     <option value="">Select Size</option>
@@ -660,7 +663,7 @@ const CreateQuote = () => {
                     type="number"
                     value={item.purchasePrice}
                     readOnly
-                    className="w-full form-input text-sm bg-gray-50"
+                    className="w-full form-input text-sm border border-gray-300 rounded-lg px-3 py-2 bg-gray-50"
                     placeholder="Cost"
                   />
                 </div>
@@ -671,7 +674,7 @@ const CreateQuote = () => {
                     type="number"
                     value={item.sellingPrice}
                     onChange={(e) => updateQuoteItem(item.id, 'sellingPrice', e.target.value)}
-                    className="w-full form-input text-sm"
+                    className="w-full form-input text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white"
                     placeholder="Price"
                     min="0"
                     step="0.01"
@@ -686,14 +689,14 @@ const CreateQuote = () => {
                     value={item.quantity}
                     onChange={(e) => updateQuoteItem(item.id, 'quantity', parseInt(e.target.value) || 1)}
                     min="1"
-                    className="w-full form-input text-sm"
+                    className="w-full form-input text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white"
                     required
                   />
                 </div>
 
                 <div className="space-y-2">
                   <label className="font-medium text-sm block">Total (UGX)</label>
-                  <div className="p-2 bg-gray-50 rounded border text-sm font-medium h-10 flex items-center">
+                  <div className="p-2 bg-gray-50 rounded-lg border border-gray-300 text-sm font-medium h-10 flex items-center px-3">
                     {item.sellingPrice
                       ? `UGX ${calculateItemTotal(item).toLocaleString()}`
                       : '--'
@@ -706,7 +709,7 @@ const CreateQuote = () => {
                     <button
                       type="button"
                       onClick={() => removeQuoteItem(item.id)}
-                      className="text-red-500 hover:text-red-700"
+                      className="text-red-500 hover:text-red-700 border border-red-200 rounded-lg px-2 h-10"
                       title="Remove item"
                     >
                       ×
@@ -779,7 +782,7 @@ const CreateQuote = () => {
                 min="1"
                 value={quoteSettings.validUntil}
                 onChange={(e) => setQuoteSettings(prev => ({ ...prev, validUntil: parseInt(e.target.value) || 30 }))}
-                className="w-full form-input"
+                className="w-full form-input border border-gray-300 rounded-lg px-3 py-2 bg-white"
                 required
               />
             </div>
@@ -792,6 +795,7 @@ const CreateQuote = () => {
                 onChange={handleQuoteSettingsChange}
                 placeholder="Enter terms and conditions..."
                 rows={3}
+                className="border border-gray-300 rounded-lg"
               />
             </div>
             <div className="space-y-2">
@@ -803,6 +807,7 @@ const CreateQuote = () => {
                 onChange={handleQuoteSettingsChange}
                 placeholder="Additional notes for the quote..."
                 rows={3}
+                className="border border-gray-300 rounded-lg"
               />
             </div>
             <Separator className="my-4" />
@@ -813,7 +818,7 @@ const CreateQuote = () => {
                 name="status"
                 value={quoteSettings.status}
                 onChange={handleQuoteSettingsChange}
-                className="w-full form-input"
+                className="w-full form-input border border-gray-300 rounded-lg px-3 py-2 bg-white"
               >
                 <option value="Draft">Draft</option>
                 <option value="Sent">Sent</option>

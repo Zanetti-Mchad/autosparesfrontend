@@ -81,11 +81,20 @@ export async function fetchApi<T = any>(
 ): Promise<T> {
   const url = buildApiUrl(endpoint);
   const headers = getApiHeaders(options.headers as Record<string, string>);
-  
-  const response = await fetch(url, {
-    ...options,
-    headers
-  });
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      ...options,
+      headers
+    });
+  } catch (err: any) {
+    const networkMsg =
+      err?.message === "Failed to fetch"
+        ? "Cannot reach the API. Check your connection or backend URL."
+        : err?.message || "Network request failed";
+    throw new ApiError(0, null, networkMsg);
+  }
   
   if (!response.ok) {
     let body: any = null;
@@ -95,7 +104,11 @@ export async function fetchApi<T = any>(
     } catch {
       body = { raw: errorText };
     }
-    throw new ApiError(response.status, body, errorText);
+    const looksLikeHtml = /^\s*</.test(errorText) || /Cannot GET|Cannot POST/i.test(errorText);
+    const fallback = looksLikeHtml
+      ? `API error (${response.status}) — endpoint may be missing on the server`
+      : errorText.slice(0, 200);
+    throw new ApiError(response.status, body, fallback);
   }
   
   return response.json();

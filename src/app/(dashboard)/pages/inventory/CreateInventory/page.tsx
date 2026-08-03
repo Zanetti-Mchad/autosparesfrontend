@@ -27,6 +27,7 @@ type InventoryForm = {
   expiryDate: string;
   kind: string;
   unit: string;
+  brandId: string;
   minStock: string;
 };
 
@@ -48,7 +49,8 @@ const emptyForm = (): InventoryForm => ({
   batchNumber: '',
   expiryDate: '',
   kind: 'product',
-  unit: 'pack',
+  unit: '',
+  brandId: '',
   minStock: '10',
 });
 
@@ -58,6 +60,8 @@ const CreateInventory = () => {
   const [success, setSuccess] = useState('');
   const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([]);
   const [loadingCategories, setLoadingCategories] = useState(false);
+  const [units, setUnits] = useState<Array<{ id: string; name: string; abbreviation?: string | null }>>([]);
+  const [brands, setBrands] = useState<Array<{ id: string; name: string }>>([]);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -74,7 +78,51 @@ const CreateInventory = () => {
         setLoadingCategories(false);
       }
     };
+
+    const fetchUnits = async () => {
+      try {
+        const json = await fetchApi('/catalog/units') as any;
+        const list = Array.isArray(json?.data) ? json.data : Array.isArray(json) ? json : [];
+        const active = list.filter((u: any) => u.isActive !== false);
+        setUnits(
+          active.map((u: any) => ({
+            id: String(u.id),
+            name: String(u.name),
+            abbreviation: u.abbreviation || null,
+          }))
+        );
+        setForm((prev) => {
+          if (prev.unit && active.some((u: any) => (u.abbreviation || u.name) === prev.unit)) {
+            return prev;
+          }
+          const first = active[0];
+          if (!first) return prev;
+          return { ...prev, unit: first.abbreviation || first.name };
+        });
+      } catch (e) {
+        console.warn('Units fetch error:', e);
+        setUnits([]);
+      }
+    };
+
+    const fetchBrands = async () => {
+      try {
+        const json = await fetchApi('/catalog/brands') as any;
+        const list = Array.isArray(json?.data) ? json.data : Array.isArray(json) ? json : [];
+        setBrands(
+          list
+            .filter((b: any) => b.isActive !== false)
+            .map((b: any) => ({ id: String(b.id), name: String(b.name) }))
+        );
+      } catch (e) {
+        console.warn('Brands fetch error:', e);
+        setBrands([]);
+      }
+    };
+
     fetchCategories();
+    fetchUnits();
+    fetchBrands();
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -124,6 +172,7 @@ const CreateInventory = () => {
           expiryDate: form.expiryDate || undefined,
           kind: form.kind || 'product',
           unit: form.unit || undefined,
+          brandId: form.brandId || undefined,
           minStock: form.minStock ? parseInt(form.minStock) : undefined,
         }),
       });
@@ -161,11 +210,26 @@ const CreateInventory = () => {
           </div>
           <div>
             <label className="block text-sm font-medium mb-2">Category</label>
-            <select name="category" value={form.category} onChange={handleChange} className="w-full glass rounded-xl border border-border/50 px-4 py-2.5 text-sm" required>
+            <select name="category" value={form.category} onChange={handleChange} className="w-full glass rounded-xl border border-border/50 px-4 py-2.5 text-sm bg-white" required>
               <option value="" disabled>{loadingCategories ? 'Loading…' : 'Select Category'}</option>
               {categories.map((cat) => (
                 <option key={cat.id} value={cat.name}>{cat.name}</option>
               ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">Brand</label>
+            <select name="brandId" value={form.brandId} onChange={handleChange} className="w-full glass rounded-xl border border-border/50 px-4 py-2.5 text-sm bg-white">
+              {brands.length === 0 ? (
+                <option value="">Add brands under Brands first</option>
+              ) : (
+                <>
+                  <option value="">No brand</option>
+                  {brands.map((b) => (
+                    <option key={b.id} value={b.id}>{b.name}</option>
+                  ))}
+                </>
+              )}
             </select>
           </div>
           <div>
@@ -230,12 +294,22 @@ const CreateInventory = () => {
           </div>
           <div>
             <label className="block text-sm font-medium mb-2">Unit</label>
-            <select name="unit" value={form.unit} onChange={handleChange} className="w-full glass rounded-xl border border-border/50 px-4 py-2.5 text-sm">
-              <option value="pack">Pack</option>
-              <option value="pcs">Pieces</option>
-              <option value="kg">Kg</option>
-              <option value="carton">Carton</option>
-              <option value="litre">Litre</option>
+            <select name="unit" value={form.unit} onChange={handleChange} className="w-full glass rounded-xl border border-border/50 px-4 py-2.5 text-sm bg-white" required={units.length > 0}>
+              {units.length === 0 ? (
+                <option value="">Add units under Product Units first</option>
+              ) : (
+                <>
+                  <option value="">Select unit…</option>
+                  {units.map((u) => {
+                    const value = u.abbreviation || u.name;
+                    return (
+                      <option key={u.id} value={value}>
+                        {u.name}{u.abbreviation ? ` (${u.abbreviation})` : ''}
+                      </option>
+                    );
+                  })}
+                </>
+              )}
             </select>
           </div>
           <div className="md:col-span-2">

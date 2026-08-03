@@ -5,10 +5,17 @@ import { env } from "@/env";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { 
-  Home, ShoppingCart, Users, Package, User, 
+import {
+  Home, ShoppingCart, Users, Package, User,
   FileText, Settings, LogOut, Quote, Store,
-  Truck, Wallet, Landmark, Factory, MapPinned, Bell, ChevronRight
+  Truck, Wallet, Landmark, Factory, MapPinned, Bell, ChevronRight,
+  ClipboardList, BarChart3, TrendingUp, PieChart,
+  UserCheck, CreditCard, RotateCcw, LineChart, Workflow,
+  PlusCircle, Boxes, ArrowLeftRight, Scale, AlertTriangle,
+  Building2, Tags, Ruler, BadgeDollarSign, RefreshCw,
+  Wrench, FolderTree, PiggyBank, MessageSquare, CalendarDays,
+  Receipt, Percent, ArrowDownCircle, ArrowUpCircle,
+  History, Shield, KeyRound, Trash2
 } from 'lucide-react';
 
 // TypeScript interfaces
@@ -28,22 +35,79 @@ interface MenuSection {
 
 const ICON_STYLES: Record<string, { wrap: string; icon: string }> = {
   Dashboard: { wrap: "bg-blue-100", icon: "text-blue-600" },
+  Pos: { wrap: "bg-emerald-100", icon: "text-emerald-600" },
   POS: { wrap: "bg-emerald-100", icon: "text-emerald-600" },
-  Orders: { wrap: "bg-orange-100", icon: "text-orange-600" },
+  Quotations: { wrap: "bg-indigo-100", icon: "text-indigo-600" },
+  "Create Quote": { wrap: "bg-blue-100", icon: "text-blue-600" },
+  "View Quotes": { wrap: "bg-indigo-100", icon: "text-indigo-600" },
+  "Delete Quote": { wrap: "bg-red-100", icon: "text-red-600" },
+  Invoices: { wrap: "bg-sky-100", icon: "text-sky-600" },
+  "Sales Drafts": { wrap: "bg-slate-100", icon: "text-slate-600" },
+  "Sales report": { wrap: "bg-lime-100", icon: "text-lime-700" },
+  "Top selling products report": { wrap: "bg-amber-100", icon: "text-amber-600" },
+  "Products Sales report": { wrap: "bg-orange-100", icon: "text-orange-600" },
+  "Profit Analysis Report": { wrap: "bg-green-100", icon: "text-green-700" },
+  "Staff Performance Report": { wrap: "bg-violet-100", icon: "text-violet-600" },
+  "Sales Payments": { wrap: "bg-teal-100", icon: "text-teal-600" },
+  "Sales Returns": { wrap: "bg-rose-100", icon: "text-rose-600" },
+  "Credit Sales Report": { wrap: "bg-yellow-100", icon: "text-yellow-700" },
+  "Net Income Report": { wrap: "bg-emerald-100", icon: "text-emerald-700" },
+  "Order Pipeline": { wrap: "bg-orange-100", icon: "text-orange-600" },
+  "Create Order": { wrap: "bg-blue-100", icon: "text-blue-600" },
+  "Orders View": { wrap: "bg-cyan-100", icon: "text-cyan-600" },
   Production: { wrap: "bg-violet-100", icon: "text-violet-600" },
   Deliveries: { wrap: "bg-cyan-100", icon: "text-cyan-600" },
-  Quotations: { wrap: "bg-indigo-100", icon: "text-indigo-600" },
-  Customers: { wrap: "bg-pink-100", icon: "text-pink-600" },
-  Inventory: { wrap: "bg-amber-100", icon: "text-amber-600" },
-  Suppliers: { wrap: "bg-teal-100", icon: "text-teal-600" },
+  "Stock levels": { wrap: "bg-amber-100", icon: "text-amber-600" },
+  "Low Stock Report": { wrap: "bg-red-100", icon: "text-red-600" },
+  "Stock Movements": { wrap: "bg-sky-100", icon: "text-sky-600" },
+  "Add Stock": { wrap: "bg-emerald-100", icon: "text-emerald-600" },
   Purchases: { wrap: "bg-sky-100", icon: "text-sky-600" },
+  "Stock Transfers": { wrap: "bg-indigo-100", icon: "text-indigo-600" },
+  "Stock Reconciliations": { wrap: "bg-purple-100", icon: "text-purple-600" },
+  "Products Reconciliations": { wrap: "bg-fuchsia-100", icon: "text-fuchsia-600" },
+  "Spoilt Stock": { wrap: "bg-red-100", icon: "text-red-600" },
+  Stores: { wrap: "bg-teal-100", icon: "text-teal-600" },
+  Suppliers: { wrap: "bg-teal-100", icon: "text-teal-600" },
+  Products: { wrap: "bg-amber-100", icon: "text-amber-600" },
+  "Create Product": { wrap: "bg-blue-100", icon: "text-blue-600" },
+  "Product Categories": { wrap: "bg-orange-100", icon: "text-orange-600" },
+  "Product Units": { wrap: "bg-slate-100", icon: "text-slate-600" },
+  Brands: { wrap: "bg-pink-100", icon: "text-pink-600" },
+  "Price Changes": { wrap: "bg-yellow-100", icon: "text-yellow-700" },
+  Restock: { wrap: "bg-green-100", icon: "text-green-600" },
+  Services: { wrap: "bg-cyan-100", icon: "text-cyan-600" },
+  "Service Categories": { wrap: "bg-sky-100", icon: "text-sky-600" },
+  Customers: { wrap: "bg-pink-100", icon: "text-pink-600" },
+  "Customer Deposits": { wrap: "bg-emerald-100", icon: "text-emerald-600" },
+  "Customer Refunds": { wrap: "bg-rose-100", icon: "text-rose-600" },
+  "Message Center": { wrap: "bg-indigo-100", icon: "text-indigo-600" },
+  "Add Customer": { wrap: "bg-blue-100", icon: "text-blue-600" },
   Expenses: { wrap: "bg-rose-100", icon: "text-rose-600" },
+  "Monthly Report": { wrap: "bg-lime-100", icon: "text-lime-700" },
+  "Expense Categories": { wrap: "bg-orange-100", icon: "text-orange-600" },
+  Taxes: { wrap: "bg-amber-100", icon: "text-amber-700" },
+  "Tax Report": { wrap: "bg-yellow-100", icon: "text-yellow-700" },
+  "Payment Methods": { wrap: "bg-teal-100", icon: "text-teal-600" },
+  "Money Transfers": { wrap: "bg-sky-100", icon: "text-sky-600" },
+  "Cash In": { wrap: "bg-green-100", icon: "text-green-600" },
+  "Cash Out": { wrap: "bg-red-100", icon: "text-red-600" },
+  "Transaction History": { wrap: "bg-slate-100", icon: "text-slate-600" },
+  "Daily Report": { wrap: "bg-lime-100", icon: "text-lime-700" },
   Users: { wrap: "bg-fuchsia-100", icon: "text-fuchsia-600" },
-  Reports: { wrap: "bg-lime-100", icon: "text-lime-700" },
-  Alerts: { wrap: "bg-red-100", icon: "text-red-600" },
+  "Roles & Permissions": { wrap: "bg-violet-100", icon: "text-violet-600" },
+  Permissions: { wrap: "bg-purple-100", icon: "text-purple-600" },
+  "Add User": { wrap: "bg-blue-100", icon: "text-blue-600" },
   Profile: { wrap: "bg-slate-100", icon: "text-slate-600" },
   Settings: { wrap: "bg-gray-100", icon: "text-gray-700" },
   Logout: { wrap: "bg-red-100", icon: "text-red-500" },
+  Alerts: { wrap: "bg-red-100", icon: "text-red-600" },
+  Inventory: { wrap: "bg-amber-100", icon: "text-amber-600" },
+  Sales: { wrap: "bg-emerald-100", icon: "text-emerald-600" },
+  Stock: { wrap: "bg-amber-100", icon: "text-amber-600" },
+  "Payment Options": { wrap: "bg-teal-100", icon: "text-teal-600" },
+  "User Management": { wrap: "bg-fuchsia-100", icon: "text-fuchsia-600" },
+  Reports: { wrap: "bg-lime-100", icon: "text-lime-700" },
+  Orders: { wrap: "bg-orange-100", icon: "text-orange-600" },
 };
 
 const menuBtnClass =
@@ -71,136 +135,156 @@ const ColoredIcon = ({
   );
 };
 
-// Mwima Eliken Poultry Farm menu
+const ALL_ROLES = ["admin", "user", "manager"];
+const ADMIN_MANAGER = ["admin", "manager"];
+const ADMIN_ONLY = ["admin"];
+
 export const menuItems: MenuSection[] = [
   {
-    title: "Mwima Eliken Poultry Farm",
+    title: "Menu",
     items: [
       {
         icon: Home,
         label: "Dashboard",
-        visible: ["admin", "user", "manager"],
+        visible: ALL_ROLES,
         href: "/admin",
-        isDirectLink: true
-      },
-      {
-        icon: Store,
-        label: "POS",
-        visible: ["admin", "user", "manager"],
-        href: "/pages/pos",
-        isDirectLink: true
+        isDirectLink: true,
       },
       {
         icon: ShoppingCart,
-        label: "Orders",
-        visible: ["admin", "user", "manager"],
+        label: "Sales",
+        visible: ALL_ROLES,
         subItems: [
-          { label: "Order Pipeline", visible: ["admin", "user", "manager"], href: "/pages/orders/pipeline" },
-          { label: "Create Order", visible: ["admin", "user", "manager"], href: "/pages/orders/createOrder" },
-          { label: "Orders View", visible: ["admin", "user", "manager"], href: "/pages/orders/OrdersView" },
-          { label: "Delete Order", visible: ["admin", "manager"], href: "/pages/orders/DeleteOrder" },
-          { label: "Payments", visible: ["admin", "user", "manager"], href: "/pages/orders/payments" },
+          { icon: Store, label: "Pos", href: "/pages/pos", visible: ALL_ROLES, isDirectLink: true },
+          {
+            icon: Quote,
+            label: "Quotations",
+            visible: ALL_ROLES,
+            subItems: [
+              { icon: PlusCircle, label: "Create Quote", href: "/pages/quotation/addquote", visible: ALL_ROLES, isDirectLink: true },
+              { icon: FileText, label: "View Quotes", href: "/pages/quotation/viewquote", visible: ALL_ROLES, isDirectLink: true },
+              { icon: Trash2, label: "Delete Quote", href: "/pages/quotation/deletequote", visible: ADMIN_MANAGER, isDirectLink: true },
+            ],
+          },
+          { icon: ClipboardList, label: "Invoices", href: "/pages/sales/invoices", visible: ALL_ROLES, isDirectLink: true },
+          {
+            icon: BarChart3,
+            label: "Reports",
+            visible: ALL_ROLES,
+            subItems: [
+              { icon: BarChart3, label: "Sales report", href: "/pages/reports/sales", visible: ALL_ROLES, isDirectLink: true },
+              { icon: TrendingUp, label: "Top selling products report", href: "/pages/reports/top-selling", visible: ALL_ROLES, isDirectLink: true },
+              { icon: PieChart, label: "Products Sales report", href: "/pages/reports/product-sales", visible: ALL_ROLES, isDirectLink: true },
+              { icon: LineChart, label: "Profit Analysis Report", href: "/pages/reports/profit-analysis", visible: ADMIN_MANAGER, isDirectLink: true },
+              { icon: UserCheck, label: "Staff Performance Report", href: "/pages/reports/staff-performance", visible: ADMIN_MANAGER, isDirectLink: true },
+              { icon: FileText, label: "Credit Sales Report", href: "/pages/reports/credit-sales", visible: ADMIN_MANAGER, isDirectLink: true },
+              { icon: Wallet, label: "Net Income Report", href: "/pages/reports/net-income", visible: ADMIN_MANAGER, isDirectLink: true },
+            ],
+          },
+          { icon: CreditCard, label: "Sales Payments", href: "/pages/orders/payments", visible: ALL_ROLES, isDirectLink: true },
+          { icon: RotateCcw, label: "Sales Returns", href: "/pages/sales/returns", visible: ALL_ROLES, isDirectLink: true },
+          {
+            icon: ShoppingCart,
+            label: "Orders",
+            visible: ALL_ROLES,
+            subItems: [
+              { icon: Workflow, label: "Order Pipeline", href: "/pages/orders/pipeline", visible: ALL_ROLES, isDirectLink: true },
+              { icon: PlusCircle, label: "Create Order", href: "/pages/orders/createOrder", visible: ALL_ROLES, isDirectLink: true },
+              { icon: ShoppingCart, label: "Orders View", href: "/pages/orders/OrdersView", visible: ALL_ROLES, isDirectLink: true },
+            ],
+          },
+          { icon: Factory, label: "Production", href: "/pages/production", visible: ALL_ROLES, isDirectLink: true },
+          { icon: MapPinned, label: "Deliveries", href: "/pages/deliveries", visible: ALL_ROLES, isDirectLink: true },
         ],
       },
       {
-        icon: Factory,
-        label: "Production",
-        visible: ["admin", "manager", "user"],
-        href: "/pages/production",
-        isDirectLink: true
-      },
-      {
-        icon: MapPinned,
-        label: "Deliveries",
-        visible: ["admin", "manager", "user"],
-        href: "/pages/deliveries",
-        isDirectLink: true
-      },
-      {
-        icon: Quote,
-        label: "Quotations",
-        visible: ["admin", "user", "manager"],
+        icon: Boxes,
+        label: "Stock",
+        visible: ALL_ROLES,
         subItems: [
-          { label: "Create Quote", visible: ["admin", "user", "manager"], href: "/pages/quotation/addquote" },
-          { label: "View Quotes", visible: ["admin", "user", "manager"], href: "/pages/quotation/viewquote" },
-          { label: "Delete Quote", visible: ["admin", "manager"], href: "/pages/quotation/deletequote" },
-        ],
-      },
-      {
-        icon: Users,
-        label: "Customers",
-        visible: ["admin", "user", "manager"],
-        subItems: [
-          { label: "View Customers", visible: ["admin", "user", "manager"], href: "/pages/customer/ViewCustomer" },
-          { label: "Add Customer", visible: ["admin", "user", "manager"], href: "/pages/customer/CreateCustomerView" },
-          { label: "Edit Customer", visible: ["admin", "manager"], href: "/pages/customer/EditCustomerView" },
-          { label: "Delete Customer", visible: ["admin", "manager"], href: "/pages/customer/DeleteCustomer" },
+          { icon: Boxes, label: "Stock levels", href: "/pages/stock/levels", visible: ALL_ROLES, isDirectLink: true },
+          { icon: Bell, label: "Low Stock Report", href: "/pages/alerts", visible: ALL_ROLES, isDirectLink: true },
+          { icon: ArrowLeftRight, label: "Stock Movements", href: "/pages/stock/movements", visible: ALL_ROLES, isDirectLink: true },
+          { icon: PlusCircle, label: "Add Stock", href: "/pages/stock/add", visible: ALL_ROLES, isDirectLink: true },
+          { icon: Landmark, label: "Purchases", href: "/pages/purchases", visible: ADMIN_MANAGER, isDirectLink: true },
+          { icon: Truck, label: "Stock Transfers", href: "/pages/stock/transfers", visible: ADMIN_MANAGER, isDirectLink: true },
+          { icon: Scale, label: "Stock Reconciliations", href: "/pages/stock/reconciliations", visible: ADMIN_MANAGER, isDirectLink: true },
+          { icon: ClipboardList, label: "Products Reconciliations", href: "/pages/stock/product-reconciliations", visible: ADMIN_MANAGER, isDirectLink: true },
+          { icon: AlertTriangle, label: "Spoilt Stock", href: "/pages/stock/spoilt", visible: ADMIN_MANAGER, isDirectLink: true },
+          { icon: Building2, label: "Stores", href: "/pages/stock/stores", visible: ADMIN_MANAGER, isDirectLink: true },
+          { icon: Truck, label: "Suppliers", href: "/pages/suppliers", visible: ADMIN_MANAGER, isDirectLink: true },
         ],
       },
       {
         icon: Package,
         label: "Inventory",
-        visible: ["admin", "user", "manager"],
+        visible: ALL_ROLES,
         subItems: [
-          { label: "Add Product", visible: ["admin", "user", "manager"], href: "/pages/inventory/CreateInventory" },
-          { label: "Restock", visible: ["admin", "user", "manager"], href: "/pages/inventory/RestockInventory" },
-          { label: "View/Edit", visible: ["admin", "user", "manager"], href: "/pages/inventory/ViewEditInventory" },
-          { label: "Delete", visible: ["admin", "manager"], href: "/pages/inventory/DeleteInventory" },
-          {
-            label: "Categories",
-            visible: ["admin", "user", "manager"],
-            subItems: [
-              { label: "Create Category", visible: ["admin", "user", "manager"], href: "/pages/inventory/categories/CreateCategory" },
-              { label: "View/Edit Category", visible: ["admin", "user", "manager"], href: "/pages/inventory/categories/ViewEditCategory" },
-              { label: "Delete Category", visible: ["admin", "manager"], href: "/pages/inventory/categories/DeleteCategory" },
-            ],
-          },
+          { icon: Package, label: "Products", href: "/pages/inventory/ViewEditInventory", visible: ALL_ROLES, isDirectLink: true },
+          { icon: PlusCircle, label: "Create Product", href: "/pages/inventory/CreateInventory", visible: ALL_ROLES, isDirectLink: true },
+          { icon: Tags, label: "Product Categories", href: "/pages/inventory/categories/ViewEditCategory", visible: ALL_ROLES, isDirectLink: true },
+          { icon: Ruler, label: "Product Units", href: "/pages/inventory/units", visible: ALL_ROLES, isDirectLink: true },
+          { icon: BadgeDollarSign, label: "Brands", href: "/pages/inventory/brands", visible: ALL_ROLES, isDirectLink: true },
+          { icon: RefreshCw, label: "Price Changes", href: "/pages/inventory/price-changes", visible: ADMIN_MANAGER, isDirectLink: true },
+          { icon: Boxes, label: "Restock", href: "/pages/inventory/RestockInventory", visible: ALL_ROLES, isDirectLink: true },
         ],
       },
       {
-        icon: Truck,
-        label: "Suppliers",
-        visible: ["admin", "manager"],
-        href: "/pages/suppliers",
-        isDirectLink: true
+        icon: Wrench,
+        label: "Services",
+        visible: ALL_ROLES,
+        subItems: [
+          { icon: Wrench, label: "Services", href: "/pages/services", visible: ALL_ROLES, isDirectLink: true },
+          { icon: FolderTree, label: "Service Categories", href: "/pages/services/categories", visible: ALL_ROLES, isDirectLink: true },
+        ],
       },
       {
-        icon: Landmark,
-        label: "Purchases",
-        visible: ["admin", "manager"],
-        href: "/pages/purchases",
-        isDirectLink: true
+        icon: Users,
+        label: "Customers",
+        visible: ALL_ROLES,
+        subItems: [
+          { icon: Users, label: "Customers", href: "/pages/customer/ViewCustomer", visible: ALL_ROLES, isDirectLink: true },
+          { icon: PiggyBank, label: "Customer Deposits", href: "/pages/customers/deposits", visible: ALL_ROLES, isDirectLink: true },
+          { icon: RotateCcw, label: "Customer Refunds", href: "/pages/customers/refunds", visible: ALL_ROLES, isDirectLink: true },
+          { icon: MessageSquare, label: "Message Center", href: "/pages/customers/messages", visible: ALL_ROLES, isDirectLink: true },
+          { icon: PlusCircle, label: "Add Customer", href: "/pages/customer/CreateCustomerView", visible: ALL_ROLES, isDirectLink: true },
+        ],
       },
       {
         icon: Wallet,
         label: "Expenses",
-        visible: ["admin", "manager"],
-        href: "/pages/expenses",
-        isDirectLink: true
-      },
-      {
-        icon: User,
-        label: "Users",
-        visible: ["admin"],
+        visible: ADMIN_MANAGER,
         subItems: [
-          { label: "Add User", visible: ["admin"], href: "/pages/adduser/adduser" },
-          { label: "View/Edit Users", visible: ["admin"], href: "/pages/adduser/viewedituser" },
-          { label: "Delete User", visible: ["admin"], href: "/pages/adduser/deleteuser" },
+          { icon: Wallet, label: "Expenses", href: "/pages/expenses", visible: ADMIN_MANAGER, isDirectLink: true },
+          { icon: CalendarDays, label: "Monthly Report", href: "/pages/reports/monthly-expenses", visible: ADMIN_MANAGER, isDirectLink: true },
+          { icon: Tags, label: "Expense Categories", href: "/pages/expenses/categories", visible: ADMIN_MANAGER, isDirectLink: true },
+          { icon: Percent, label: "Taxes", href: "/pages/expenses/taxes", visible: ADMIN_MANAGER, isDirectLink: true },
+          { icon: Receipt, label: "Tax Report", href: "/pages/reports/tax", visible: ADMIN_MANAGER, isDirectLink: true },
         ],
       },
       {
-        icon: FileText,
-        label: "Reports",
-        visible: ["admin", "user", "manager"],
-        href: "/pages/reports",
-        isDirectLink: true
+        icon: CreditCard,
+        label: "Payment Options",
+        visible: ADMIN_MANAGER,
+        subItems: [
+          { icon: CreditCard, label: "Payment Methods", href: "/pages/payments/methods", visible: ADMIN_MANAGER, isDirectLink: true },
+          { icon: ArrowLeftRight, label: "Money Transfers", href: "/pages/payments/transfers", visible: ADMIN_MANAGER, isDirectLink: true },
+          { icon: ArrowDownCircle, label: "Cash In", href: "/pages/payments/cash-in", visible: ADMIN_MANAGER, isDirectLink: true },
+          { icon: ArrowUpCircle, label: "Cash Out", href: "/pages/payments/cash-out", visible: ADMIN_MANAGER, isDirectLink: true },
+          { icon: History, label: "Transaction History", href: "/pages/payments/history", visible: ADMIN_MANAGER, isDirectLink: true },
+          { icon: BarChart3, label: "Daily Report", href: "/pages/payments/daily-report", visible: ADMIN_MANAGER, isDirectLink: true },
+        ],
       },
       {
-        icon: Bell,
-        label: "Alerts",
-        visible: ["admin", "manager", "user"],
-        href: "/pages/alerts",
-        isDirectLink: true
+        icon: Shield,
+        label: "User Management",
+        visible: ADMIN_ONLY,
+        subItems: [
+          { icon: User, label: "Users", href: "/pages/adduser/viewedituser", visible: ADMIN_ONLY, isDirectLink: true },
+          { icon: Shield, label: "Roles & Permissions", href: "/pages/users/roles", visible: ADMIN_ONLY, isDirectLink: true },
+          { icon: KeyRound, label: "Permissions", href: "/pages/users/permissions", visible: ADMIN_ONLY, isDirectLink: true },
+          { icon: PlusCircle, label: "Add User", href: "/pages/adduser/adduser", visible: ADMIN_ONLY, isDirectLink: true },
+        ],
       },
     ],
   },
@@ -211,25 +295,25 @@ export const menuItems: MenuSection[] = [
         icon: User,
         label: "Profile",
         href: "/pages/profile",
-        visible: ["admin", "user", "manager"],
-        isDirectLink: true
+        visible: ALL_ROLES,
+        isDirectLink: true,
       },
       {
         icon: Settings,
         label: "Settings",
         href: "/pages/settings",
-        visible: ["admin"],
-        isDirectLink: true
+        visible: ADMIN_ONLY,
+        isDirectLink: true,
       },
       {
         icon: LogOut,
         label: "Logout",
         href: "/logout",
-        visible: ["admin", "user", "manager"],
-        isDirectLink: true
-      }
-    ]
-  }
+        visible: ALL_ROLES,
+        isDirectLink: true,
+      },
+    ],
+  },
 ];
 
 const Menu = ({ onNavigate }: { onNavigate?: () => void }) => {
@@ -241,12 +325,11 @@ const Menu = ({ onNavigate }: { onNavigate?: () => void }) => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
-    const userRole = getRole(); // Fetch role from localStorage
+    const userRole = getRole();
     setRole(userRole);
     setIsLoading(false);
   }, []);
 
-  // Warm up routes so first click is faster (especially in next dev)
   useEffect(() => {
     const hrefs = new Set<string>();
     const walk = (items: MenuItem[]) => {
@@ -256,7 +339,6 @@ const Menu = ({ onNavigate }: { onNavigate?: () => void }) => {
       }
     };
     menuItems.forEach((section) => walk(section.items));
-    // Prefetch top routes after idle so it doesn't block first paint
     const id = window.setTimeout(() => {
       hrefs.forEach((href) => {
         try {
@@ -270,7 +352,7 @@ const Menu = ({ onNavigate }: { onNavigate?: () => void }) => {
   }, [router]);
 
   const handleNavigate = () => {
-    setExpandedPath(null);
+    // Keep the expanded parent open; only close the mobile drawer
     onNavigate?.();
   };
 
@@ -288,7 +370,6 @@ const Menu = ({ onNavigate }: { onNavigate?: () => void }) => {
       setIsLoggingOut(true);
       console.log('Logout initiated');
       
-      // Get the user information from localStorage
       let userId;
       try {
         const userStr = localStorage.getItem('user');
@@ -305,7 +386,6 @@ const Menu = ({ onNavigate }: { onNavigate?: () => void }) => {
       
       const accessToken = localStorage.getItem('accessToken');
       
-      // Try to call the logout API with the correct payload structure
       if (userId) {
         try {
           const controller = new AbortController();
@@ -317,7 +397,7 @@ const Menu = ({ onNavigate }: { onNavigate?: () => void }) => {
             status: "SUCCESS"
           });
           
-          const backendUrl = env.BACKEND_API_URL; // Use consistent environment variable
+          const backendUrl = env.BACKEND_API_URL;
           const response = await fetch(`${backendUrl}/api/v1/logout/logout`, {
             method: 'POST',
             headers: {
@@ -348,12 +428,10 @@ const Menu = ({ onNavigate }: { onNavigate?: () => void }) => {
         console.warn('No userId found, skipping API logout');
       }
 
-      // Clear all local storage
       console.log('Clearing local storage');
       localStorage.clear();
       sessionStorage.clear();
 
-      // Redirect to sign-in page
       console.log('Redirecting to sign-in page');
       window.location.href = '/sign-in';
     } catch (error: any) {
@@ -378,7 +456,6 @@ const Menu = ({ onNavigate }: { onNavigate?: () => void }) => {
   };
 
   const getHref = (item: MenuItem) => {
-    // For the Dashboard menu item, return a different href based on the user's role
     if (item.label === "Dashboard") {
       switch (role) {
         case "admin":
@@ -391,8 +468,6 @@ const Menu = ({ onNavigate }: { onNavigate?: () => void }) => {
           return "/admin";
       }
     }
-    
-    // For other menu items, you can either keep their original href or customize them similarly
     return item.href || "#";
   };
 
@@ -404,7 +479,6 @@ const Menu = ({ onNavigate }: { onNavigate?: () => void }) => {
   const renderMenuItem = (item: MenuItem, path: string = "") => {
     const currentPath = path ? `${path}.${item.label}` : item.label;
 
-    // First check if the item should be visible to the current role
     if (!isItemVisible(item)) {
       return null;
     }
@@ -480,9 +554,11 @@ const Menu = ({ onNavigate }: { onNavigate?: () => void }) => {
       <div className="flex-grow space-y-1">
         {(menuItems as MenuSection[]).map((section) => (
           <div className="flex flex-col gap-1" key={section.title}>
-            <span className="block text-gray-400 font-medium text-[11px] uppercase tracking-wider my-3 px-3">
-              {section.title}
-            </span>
+            {section.title !== "Menu" && (
+              <span className="block text-gray-400 font-medium text-[11px] uppercase tracking-wider my-3 px-3">
+                {section.title}
+              </span>
+            )}
 
             {section.items.map((item) => {
               if (!isItemVisible(item)) {
@@ -521,14 +597,17 @@ const Menu = ({ onNavigate }: { onNavigate?: () => void }) => {
 
               return (
                 <div key={item.label} className="relative">
-                  <div
+                  <button
+                    type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       toggleItem(item.label);
                       item.subItems?.forEach((sub) => prefetchHref(sub.href));
                     }}
                     onMouseEnter={() => item.subItems?.forEach((sub) => prefetchHref(sub.href))}
-                    className={`${menuBtnClass} cursor-pointer`}
+                    className={`${menuBtnClass} cursor-pointer ${
+                      isExpanded(item.label) ? "bg-blue-50 shadow-sm" : ""
+                    }`}
                   >
                     <ColoredIcon icon={item.icon} label={item.label} />
                     <span className="block font-medium text-sm flex-1">{item.label}</span>
@@ -537,10 +616,10 @@ const Menu = ({ onNavigate }: { onNavigate?: () => void }) => {
                         isExpanded(item.label) ? "rotate-90" : ""
                       }`}
                     />
-                  </div>
+                  </button>
 
                   {item.subItems && isExpanded(item.label) && (
-                    <div className="ml-4 pl-3 mt-1 mb-2 border-l-2 border-blue-100 space-y-0.5">
+                    <div className="ml-4 pl-3 mt-1 mb-2 border-l-2 border-blue-100 space-y-0.5 animate-in fade-in slide-in-from-top-1 duration-200">
                       {item.subItems.map((subItem: MenuItem, index: number) => {
                         if (!isItemVisible(subItem)) {
                           return null;
@@ -561,7 +640,6 @@ const Menu = ({ onNavigate }: { onNavigate?: () => void }) => {
       </div>
 
       <div className="flex-1" />
-      {/* Mwima brand panel */}
       <div className="hidden lg:flex pt-8 flex-col items-center">
         <div className="relative w-full h-40 mb-4">
           <Image
@@ -577,7 +655,6 @@ const Menu = ({ onNavigate }: { onNavigate?: () => void }) => {
         </p>
       </div>
 
-      {/* Logout Dialog */}
       {showLogoutDialog && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">

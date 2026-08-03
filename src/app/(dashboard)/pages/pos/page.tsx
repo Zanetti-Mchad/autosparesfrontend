@@ -2,6 +2,8 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { fetchApi } from "@/lib/apiConfig";
+import { formatDisplayDateTime } from "@/lib/formatDate";
+import { businessDisplayName } from "@/lib/businessSettings";
 import toast from "react-hot-toast";
 import { Search, Trash2, Plus, Minus, Printer, MessageCircle } from "lucide-react";
 
@@ -220,7 +222,7 @@ export default function PosPage() {
 
   const whatsappReceipt = () => {
     if (!lastReceipt) return toast.error("Complete a sale first");
-    const companyName = business?.businessName || "Autospares";
+    const companyName = businessDisplayName(business);
     const lines = [
       `*${companyName}*`,
       business?.businessTagLine ? business.businessTagLine : null,
@@ -246,7 +248,7 @@ export default function PosPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Point of Sale</h1>
           <p className="text-sm text-gray-500">
-            {business?.businessName || "Autospares"} · scan barcode or search products
+            {businessDisplayName(business)} · scan barcode or search products
           </p>
         </div>
       </div>
@@ -449,10 +451,10 @@ export default function PosPage() {
 
       <div className="hidden" ref={receiptRef}>
         {lastReceipt && (
-          <div style={{ fontFamily: "monospace", padding: 16, maxWidth: 320 }}>
+          <div style={{ fontFamily: "monospace", padding: "16px 16px 40px", maxWidth: 320 }}>
             <div style={{ textAlign: "center", marginBottom: 12 }}>
               <h2 style={{ margin: "0 0 4px", fontSize: 18 }}>
-                {business?.businessName || "Autospares"}
+                {businessDisplayName(business)}
               </h2>
               {business?.businessTagLine && (
                 <p style={{ margin: "0 0 4px", fontSize: 12 }}>{business.businessTagLine}</p>
@@ -473,7 +475,7 @@ export default function PosPage() {
             <hr />
             <p>Receipt: {lastReceipt.orderNumber}</p>
             <p style={{ fontSize: 12 }}>
-              {new Date(lastReceipt.createdAt || Date.now()).toLocaleString()}
+              {formatDisplayDateTime(lastReceipt.createdAt || Date.now())}
             </p>
             <hr />
             {(lastReceipt.items || []).map((i: any) => (
@@ -485,7 +487,14 @@ export default function PosPage() {
             <p>
               <strong>Total: {money(lastReceipt.total)}</strong>
             </p>
-            <p style={{ textAlign: "center", marginTop: 12 }}>Thank you for your business!</p>
+            <p style={{ fontSize: 12, marginTop: 8 }}>
+              <strong>Terms &amp; Conditions</strong>
+              <br />
+              Payment: Cash payment
+            </p>
+            <p style={{ textAlign: "center", marginTop: 16, marginBottom: 24 }}>
+              Thank you for your business!
+            </p>
           </div>
         )}
       </div>

@@ -1,4 +1,5 @@
 'use client';
+import { formatDisplayDate, formatDisplayDateTime } from '@/lib/formatDate';
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
@@ -22,10 +23,12 @@ import {
   XCircle,
   AlertCircle,
   MoreHorizontal,
-  Plus
+  Plus,
+  FilePlus2
 } from 'lucide-react';
 import { fetchApi } from '@/lib/apiConfig';
 import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -92,11 +95,13 @@ interface SizeOption {
 }
 
 const ViewQuotes = () => {
+  const router = useRouter();
   // State
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [filteredQuotes, setFilteredQuotes] = useState<Quote[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
@@ -208,13 +213,7 @@ const ViewQuotes = () => {
 
   // Format date
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    return formatDisplayDate(dateString);
   };
 
   // Calculate days until expiry
@@ -345,10 +344,40 @@ const ViewQuotes = () => {
   };
 
 
-  const handleDownloadQuote = (quote: Quote) => {
+  const handleGenerateInvoice = async (quote: Quote) => {
+    try {
+      setGeneratingId(quote.id);
+      const res = await fetchApi("/sales/invoices/from-quote", {
+        method: "POST",
+        body: JSON.stringify({ quoteId: quote.id }),
+      });
+      const invoice = res?.data || res;
+      toast.success(
+        invoice?.invoiceNumber
+          ? `Invoice ${invoice.invoiceNumber} created`
+          : "Invoice created from quote"
+      );
+      router.push("/pages/sales/invoices");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to generate invoice");
+    } finally {
+      setGeneratingId(null);
+    }
+  };
+
+  const handleDownloadQuote = async (quote: Quote) => {
+    const {
+      fetchBusinessSettings,
+      businessDisplayName,
+      businessDetailLines,
+    } = await import("@/lib/businessSettings");
+    const business = await fetchBusinessSettings();
+    const companyName = businessDisplayName(business);
+    const companyDetails = businessDetailLines(business);
+
     const doc = new jsPDF({
       unit: 'mm',
-      format: [80, 150] // Approximately thermal receipt size
+      format: [80, 180] // Thermal receipt with extra bottom space
     });
 
     let yPos = 10;
@@ -359,13 +388,21 @@ const ViewQuotes = () => {
     const normalTextSize = 10;
     const largeTextSize = 14;
 
-    // Restaurant Logo/Name (Autospares)
+    // Business name from Settings
     doc.setFontSize(largeTextSize);
-    doc.text('Autospares', centerX, yPos, { align: 'center' });
+    doc.text(companyName, centerX, yPos, { align: 'center' });
     yPos += lineHeight;
     doc.setFontSize(smallTextSize);
-    doc.text('SHOP MANAGEMENT', centerX, yPos, { align: 'center' });
-    yPos += lineHeight * 2;
+    if (companyDetails.length) {
+      companyDetails.forEach((line) => {
+        const wrapped = doc.splitTextToSize(line, 70);
+        wrapped.forEach((w: string) => {
+          doc.text(w, centerX, yPos, { align: 'center' });
+          yPos += lineHeight;
+        });
+      });
+    }
+    yPos += lineHeight;
 
     // Address
     doc.setFontSize(normalTextSize);
@@ -376,10 +413,7 @@ const ViewQuotes = () => {
 
     // Date, Time, Quote ID
     doc.setFontSize(smallTextSize);
-    const createdAtDate = new Date(quote.createdAt);
-    const formattedDate = `${String(createdAtDate.getMonth() + 1).padStart(2, '0')}/${String(createdAtDate.getDate()).padStart(2, '0')}/${createdAtDate.getFullYear()}`;
-    const formattedTime = createdAtDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
-    doc.text(`${formattedDate} ${formattedTime}`, margin, yPos);
+    doc.text(formatDisplayDateTime(quote.createdAt), margin, yPos);
     doc.text(`QUOTE: ${quote.quoteNumber}`, doc.internal.pageSize.width - margin, yPos, { align: 'right' });
     yPos += lineHeight * 2;
 
@@ -449,20 +483,26 @@ const ViewQuotes = () => {
       yPos += lineHeight; // Add space after notes
     }
 
-    // Terms & Conditions
-    if (quote.terms) {
-      doc.setFontSize(normalTextSize);
-      doc.text('TERMS & CONDITIONS:', margin, yPos);
-      yPos += lineHeight;
-      doc.setFontSize(smallTextSize);
-      // Split terms into multiple lines if too long
-      const termsLines = doc.splitTextToSize(quote.terms, doc.internal.pageSize.width - (2 * margin));
+    // Terms & Conditions (default: Cash payment)
+    const termsText = (quote.terms && quote.terms.trim()) || 'Cash payment';
+    doc.setFontSize(normalTextSize);
+    doc.text('TERMS & CONDITIONS:', margin, yPos);
+    yPos += lineHeight;
+    doc.setFontSize(smallTextSize);
+    doc.text('Payment: Cash payment', margin, yPos);
+    yPos += lineHeight;
+    if (termsText.toLowerCase() !== 'cash payment') {
+      const termsLines = doc.splitTextToSize(termsText, doc.internal.pageSize.width - (2 * margin));
       termsLines.forEach((line: string) => {
         doc.text(line, margin, yPos);
         yPos += lineHeight;
       });
-      // No extra lineHeight here, as this is the very bottom section.
     }
+    // Extra bottom padding so content is not cut off when printing
+    yPos += lineHeight * 4;
+    doc.setFontSize(smallTextSize);
+    doc.text('Thank you for your business!', centerX, yPos, { align: 'center' });
+    yPos += lineHeight * 3;
 
     // Barcode Placeholder (simple rectangle)
     // doc.rect(margin, yPos, doc.internal.pageSize.width - (2 * margin), 15); // x, y, width, height
@@ -495,44 +535,45 @@ const ViewQuotes = () => {
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-7xl">
+    <div className="p-3 sm:p-4 md:p-6 max-w-7xl mx-auto w-full min-w-0 space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <FileText className="h-8 w-8 text-primary" />
-              <h1 className="text-3xl font-bold">View Quotes</h1>
-            </div>
-            <p className="text-muted-foreground">
-              Manage and view all your quotes
-            </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 sm:gap-3 mb-1">
+            <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-primary shrink-0" />
+            <h1 className="text-xl sm:text-3xl font-bold truncate">View Quotes</h1>
           </div>
-          <Button onClick={() => window.location.href = '/dashboard/pages/quotation/addquote/view'}>
-            <Plus className="h-4 w-4 mr-2" />
-            Create Quote
-          </Button>
+          <p className="text-sm text-muted-foreground">
+            Manage and view all your quotes
+          </p>
         </div>
+        <Button
+          className="w-full sm:w-auto min-h-11 shrink-0"
+          onClick={() => (window.location.href = "/pages/quotation/addquote")}
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Create Quote
+        </Button>
       </div>
 
       {/* Filters */}
-      <Card className="mb-6">
-        <CardContent className="p-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
+      <Card>
+        <CardContent className="p-3 sm:p-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
+            <div className="flex-1 min-w-0">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
                   placeholder="Search quotes by number, customer, or company..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 min-h-10"
                 />
               </div>
             </div>
-            <div className="w-full sm:w-48">
+            <div className="w-full sm:w-48 shrink-0">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger>
+                <SelectTrigger className="min-h-10">
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -549,137 +590,233 @@ const ViewQuotes = () => {
         </CardContent>
       </Card>
 
-      {/* Quotes Table */}
+      {/* Quotes list */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+        <CardHeader className="p-3 sm:p-6 pb-2 sm:pb-4">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
             <Package className="h-5 w-5" />
             Quotes ({filteredQuotes.length})
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-3 sm:p-6 pt-0">
           {filteredQuotes.length === 0 ? (
-            <div className="text-center py-12">
+            <div className="text-center py-10 sm:py-12">
               <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-semibold mb-2">No quotes found</h3>
-              <p className="text-muted-foreground mb-4">
-                {searchTerm || statusFilter !== 'all' 
-                  ? 'Try adjusting your search or filter criteria'
-                  : 'Get started by creating your first quote'
-                }
+              <p className="text-muted-foreground mb-4 text-sm">
+                {searchTerm || statusFilter !== "all"
+                  ? "Try adjusting your search or filter criteria"
+                  : "Get started by creating your first quote"}
               </p>
-              {!searchTerm && statusFilter === 'all' && (
-                <Button onClick={() => window.location.href = '/dashboard/pages/quotation/addquote/view'}>
+              {!searchTerm && statusFilter === "all" && (
+                <Button
+                  className="min-h-11"
+                  onClick={() => (window.location.href = "/pages/quotation/addquote")}
+                >
                   <Plus className="h-4 w-4 mr-2" />
                   Create Quote
                 </Button>
               )}
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>No.</TableHead> 
-                    <TableHead>Quote Number</TableHead>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Total Amount</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead>Expires In</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredQuotes.map((quote, index) => {
-                    const daysUntilExpiry = getDaysUntilExpiry(quote.createdAt, quote.validUntil);
-                    return (
-                      <TableRow key={quote.id}>
-                        <TableCell className="font-medium">{index + 1}.</TableCell> 
-                        <TableCell className="font-medium">
-                          {quote.quoteNumber}
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium">{quote.customer.name}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {quote.customer.email}
-                            </div>
-                            {quote.customer.company && (
+            <>
+              {/* Mobile cards */}
+              <div className="md:hidden space-y-3">
+                {filteredQuotes.map((quote, index) => {
+                  const daysUntilExpiry = getDaysUntilExpiry(quote.createdAt, quote.validUntil);
+                  return (
+                    <div key={quote.id} className="border rounded-xl p-3 space-y-2 bg-white">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="text-xs text-muted-foreground">#{index + 1}</div>
+                          <div className="font-semibold break-words">{quote.quoteNumber}</div>
+                          <div className="text-sm font-medium break-words">{quote.customer.name}</div>
+                          <div className="text-xs text-muted-foreground break-all">
+                            {quote.customer.email}
+                          </div>
+                        </div>
+                        <Badge className={`${getStatusColor(quote.status)} shrink-0`}>
+                          <span className="flex items-center gap-1">
+                            {getStatusIcon(quote.status)}
+                            {quote.status}
+                          </span>
+                        </Badge>
+                      </div>
+                      <div className="text-sm space-y-0.5">
+                        <div className="font-medium">UGX {quote.total.toLocaleString()}</div>
+                        <div className="text-xs text-muted-foreground">
+                          Created {formatDate(quote.createdAt)}
+                        </div>
+                        <div
+                          className={`flex items-center gap-1 text-xs ${
+                            daysUntilExpiry < 0
+                              ? "text-red-600"
+                              : daysUntilExpiry < 3
+                                ? "text-orange-600"
+                                : "text-green-600"
+                          }`}
+                        >
+                          <Clock className="h-3.5 w-3.5" />
+                          {daysUntilExpiry < 0 ? "Expired" : `${daysUntilExpiry} days left`}
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="min-h-10"
+                          onClick={() => handleViewQuote(quote)}
+                        >
+                          <Eye className="h-4 w-4 mr-1" /> View
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="min-h-10"
+                          onClick={() => handleEditQuote(quote)}
+                        >
+                          <Edit className="h-4 w-4 mr-1" /> Edit
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="min-h-10"
+                          disabled={generatingId === quote.id}
+                          onClick={() => handleGenerateInvoice(quote)}
+                        >
+                          <FilePlus2 className="h-4 w-4 mr-1" />
+                          {generatingId === quote.id ? "…" : "Invoice"}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="min-h-10"
+                          onClick={() => handleDownloadQuote(quote)}
+                        >
+                          <Download className="h-4 w-4 mr-1" /> PDF
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Desktop table */}
+              <div className="hidden md:block overflow-x-auto -mx-1">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-12 text-muted-foreground">#</TableHead>
+                      <TableHead>Quote Number</TableHead>
+                      <TableHead>Customer</TableHead>
+                      <TableHead>Total Amount</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Created</TableHead>
+                      <TableHead>Expires In</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredQuotes.map((quote, index) => {
+                      const daysUntilExpiry = getDaysUntilExpiry(quote.createdAt, quote.validUntil);
+                      return (
+                        <TableRow key={quote.id}>
+                          <TableCell className="text-muted-foreground tabular-nums">
+                            {index + 1}
+                          </TableCell>
+                          <TableCell className="font-medium">{quote.quoteNumber}</TableCell>
+                          <TableCell>
+                            <div>
+                              <div className="font-medium">{quote.customer.name}</div>
                               <div className="text-sm text-muted-foreground">
-                                {quote.customer.company}
+                                {quote.customer.email}
                               </div>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="font-medium">
-                            UGX {quote.total.toLocaleString()}
-                          </div>
-                          {quote.includeVat && (
-                            <div className="text-sm text-muted-foreground">
-                              (incl. VAT)
+                              {quote.customer.company && (
+                                <div className="text-sm text-muted-foreground">
+                                  {quote.customer.company}
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={getStatusColor(quote.status)}>
-                            <span className="flex items-center gap-1">
-                              {getStatusIcon(quote.status)}
-                              {quote.status}
-                            </span>
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {formatDate(quote.createdAt)}
-                        </TableCell>
-                        <TableCell>
-                          <div className={`flex items-center gap-1 ${
-                            daysUntilExpiry < 0 ? 'text-red-600' :
-                            daysUntilExpiry < 3 ? 'text-orange-600' :
-                            'text-green-600'
-                          }`}>
-                            <Clock className="h-4 w-4" />
-                            {daysUntilExpiry < 0 ? 'Expired' : `${daysUntilExpiry} days`}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuItem onClick={() => handleViewQuote(quote)}>
-                                <Eye className="h-4 w-4 mr-2" />
-                                View Details
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleEditQuote(quote)}>
-                                <Edit className="h-4 w-4 mr-2" />
-                                Edit Quote
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleDownloadQuote(quote)}>
-                                <Download className="h-4 w-4 mr-2" />
-                                Download PDF
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="font-medium">UGX {quote.total.toLocaleString()}</div>
+                            {quote.includeVat && (
+                              <div className="text-sm text-muted-foreground">(incl. VAT)</div>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={getStatusColor(quote.status)}>
+                              <span className="flex items-center gap-1">
+                                {getStatusIcon(quote.status)}
+                                {quote.status}
+                              </span>
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{formatDate(quote.createdAt)}</TableCell>
+                          <TableCell>
+                            <div
+                              className={`flex items-center gap-1 ${
+                                daysUntilExpiry < 0
+                                  ? "text-red-600"
+                                  : daysUntilExpiry < 3
+                                    ? "text-orange-600"
+                                    : "text-green-600"
+                              }`}
+                            >
+                              <Clock className="h-4 w-4" />
+                              {daysUntilExpiry < 0 ? "Expired" : `${daysUntilExpiry} days`}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="h-10 w-10 p-0">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuItem onClick={() => handleViewQuote(quote)}>
+                                  <Eye className="h-4 w-4 mr-2" />
+                                  View Details
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleEditQuote(quote)}>
+                                  <Edit className="h-4 w-4 mr-2" />
+                                  Edit Quote
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleDownloadQuote(quote)}>
+                                  <Download className="h-4 w-4 mr-2" />
+                                  Download PDF
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  disabled={generatingId === quote.id}
+                                  onClick={() => handleGenerateInvoice(quote)}
+                                  
+                                >
+                                  <FilePlus2 className="h-4 w-4 mr-2" />
+                                  {generatingId === quote.id ? "Generating…" : "Generate Invoice"}
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
 
       {/* Quote Details Modal */}
       <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white"> {/* Set DialogContent to white */}
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white w-[calc(100%-1.5rem)]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
@@ -853,7 +990,7 @@ const ViewQuotes = () => {
 
       {/* Edit Quote Modal */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white"> {/* Added bg-white here */}
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white w-[calc(100%-1.5rem)]"> {/* Added bg-white here */}
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Edit className="h-5 w-5" />

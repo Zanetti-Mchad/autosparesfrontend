@@ -1,4 +1,5 @@
 'use client';
+import { formatDisplayDate } from '@/lib/formatDate';
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
@@ -199,13 +200,7 @@ const DeleteQuotes = () => {
 
   // Format date
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    return formatDisplayDate(dateString);
   };
 
   // Calculate days until expiry
@@ -413,6 +408,7 @@ const DeleteQuotes = () => {
                         onCheckedChange={handleSelectAll}
                       />
                     </TableHead>
+                    <TableHead className="w-12 text-muted-foreground">#</TableHead>
                     <TableHead>Quote Number</TableHead>
                     <TableHead>Customer</TableHead>
                     <TableHead>Total Amount</TableHead>
@@ -423,7 +419,7 @@ const DeleteQuotes = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredQuotes.map((quote) => {
+                  {filteredQuotes.map((quote, index) => {
                     const daysUntilExpiry = getDaysUntilExpiry(quote.createdAt, quote.validUntil);
                     const canDelete = canDeleteQuote(quote);
                     const isSelected = selectedQuotes.includes(quote.id);
@@ -439,6 +435,9 @@ const DeleteQuotes = () => {
                             onCheckedChange={(checked) => handleQuoteSelect(quote.id, checked as boolean)}
                             disabled={!canDelete}
                           />
+                        </TableCell>
+                        <TableCell className="text-muted-foreground tabular-nums">
+                          {index + 1}
                         </TableCell>
                         <TableCell className="font-medium">
                           {quote.quoteNumber}

@@ -1,4 +1,5 @@
 "use client";
+import { formatDisplayDate, formatDisplayDateTime } from '@/lib/formatDate';
 import React, { useState } from 'react';
 import { CheckCircle, XCircle } from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
@@ -35,6 +36,11 @@ interface Order {
 }
 import { Eye, Edit, Search } from 'lucide-react';
 import { fetchApi } from '@/lib/apiConfig';
+import {
+  fetchBusinessSettings,
+  businessDisplayName,
+  businessDetailLines,
+} from '@/lib/businessSettings';
 
 type OrderModalProps = {
   order: Order | null;
@@ -59,17 +65,8 @@ const Modal: React.FC<ModalProps> = ({ open, onClose, children }) => {
   );
 };
 
-const formatOrderDate = (iso: string): string => {
-  if (!iso) return '';
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return iso;
-  const day = String(d.getDate()).padStart(2, '0');
-  const monthIdx = d.getMonth();
-  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'];
-  const month = monthNames[monthIdx] || '';
-  const year = d.getFullYear();
-  return `${day} ${month} ${year}`;
-};
+const formatOrderDate = (iso: string): string => formatDisplayDate(iso, '');
+
 
 const toNumber = (val: any): number => {
   if (val === null || val === undefined) return 0;
@@ -115,8 +112,7 @@ const OrderModal: React.FC<OrderModalProps> = ({ order, mode, onClose, onSave })
     if (!w) return;
 
     const dt = new Date(draft.date || new Date().toISOString());
-    const dateStr = `${String(dt.getMonth()+1).padStart(2,'0')}/${String(dt.getDate()).padStart(2,'0')}/${dt.getFullYear()}`;
-    const timeStr = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const dateStr = formatDisplayDateTime(dt);
     const itemsRows = (draft.items || [])
       .map(
         (it) => `
@@ -132,32 +128,9 @@ const OrderModal: React.FC<OrderModalProps> = ({ order, mode, onClose, onSave })
     const tax = toNumber(draft.vat);
     const grand = toNumber(draft.total) || (subTotal + tax);
 
-    let business: {
-      businessName?: string;
-      businessTagLine?: string;
-      location?: string;
-      telephone?: string;
-      email?: string;
-      tin?: string;
-    } = {};
-    try {
-      const bizRes = await fetchApi('/settings/business').catch(() =>
-        fetchApi('/settings/view')
-      );
-      business = bizRes?.data || {};
-    } catch {
-      // fall back to defaults below
-    }
-
-    const companyName = business.businessName || 'Autospares';
-    const companyLines = [
-      business.businessTagLine,
-      business.location,
-      business.telephone ? `Tel: ${business.telephone}` : '',
-      business.email ? `Email: ${business.email}` : '',
-      business.tin ? `TIN: ${business.tin}` : '',
-    ]
-      .filter(Boolean)
+    let business = await fetchBusinessSettings();
+    const companyName = businessDisplayName(business);
+    const companyLines = businessDetailLines(business)
       .map((line) => `<div class="muted">${line}</div>`)
       .join('');
 
@@ -167,8 +140,8 @@ const OrderModal: React.FC<OrderModalProps> = ({ order, mode, onClose, onSave })
   <meta charset="utf-8" />
   <title>Order ${draft.orderNumber || draft.id}</title>
   <style>
-    @page { size: 80mm auto; margin: 6mm; }
-    body { width: 72mm; margin: 0 auto; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial; color:#111827; }
+    @page { size: 80mm auto; margin: 6mm 6mm 18mm 6mm; }
+    body { width: 72mm; margin: 0 auto; padding-bottom: 28px; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial; color:#111827; }
     .center { text-align:center; }
     .brand { font-weight:700; font-size:16px; margin:6px 0 2px; }
     .muted { color:#6b7280; font-size:11px; }
@@ -186,7 +159,7 @@ const OrderModal: React.FC<OrderModalProps> = ({ order, mode, onClose, onSave })
     <div class="brand">${companyName}</div>
     ${companyLines}
     <div class="divider"></div>
-    <div class="muted">${dateStr} &nbsp;&nbsp; ${timeStr}</div>
+    <div class="muted">${dateStr}</div>
     <div class="muted">Order: <span class="bold">${draft.orderNumber || draft.id}</span></div>
   </div>
 
@@ -209,10 +182,14 @@ const OrderModal: React.FC<OrderModalProps> = ({ order, mode, onClose, onSave })
     <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:14px"><span class="bold">AMT</span><span class="bold" style="font-size:16px">${formatAmount(grand)}</span></div>
   </div>
 
-  <div class="center" style="margin-top:12px">
+  <div class="divider"></div>
+  <div class="muted">TERMS &amp; CONDITIONS</div>
+  <div class="bold" style="font-size:12px;margin-top:4px">Payment: Cash payment</div>
+
+  <div class="center" style="margin-top:16px;padding-bottom:28px">
     <div class="muted">Thank you for your business!</div>
   </div>
-  <div class="barcode"></div>
+  <div class="barcode" style="margin-bottom:24px"></div>
 </body>
 </html>`;
 
@@ -898,7 +875,7 @@ const ViewEditOrder = () => {
           <table className="w-full text-left">
             <thead className="bg-secondary/50">
               <tr>
-                <th className="p-4 font-semibold">#</th>
+                <th className="p-4 font-semibold w-12 text-gray-500">#</th>
                 <th className="p-4 font-semibold">Order ID</th>
                 <th className="p-4 font-semibold">Customer</th>
                 <th className="p-4 font-semibold">Products</th>
@@ -913,14 +890,14 @@ const ViewEditOrder = () => {
             <tbody>
               {filteredAndSearchedOrders.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={10} className="p-8 text-center text-muted-foreground">
                     No orders found matching your search
                   </td>
                 </tr>
               ) : (
                 filteredAndSearchedOrders.map((order, index) => (
                   <tr key={order.id} className="border-t border-border/50 hover:bg-secondary/40 transition-colors">
-                    <td className="p-4 font-medium text-muted-foreground">{index + 1}</td>
+                    <td className="p-4 text-gray-500 tabular-nums">{index + 1}</td>
                     <td className="p-4 font-medium text-primary">{order.orderNumber || order.id}</td>
                     <td className="p-4">
                       <div className="font-medium">{order.customer}</div>

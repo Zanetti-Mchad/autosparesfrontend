@@ -93,6 +93,7 @@ export default function SuppliersPage() {
         <table className="min-w-full text-sm">
           <thead className="bg-gray-50 text-left">
             <tr>
+              <th className="p-3 w-12 text-gray-500">#</th>
               <th className="p-3">Name</th>
               <th className="p-3">Contact</th>
               <th className="p-3">Phone</th>
@@ -104,13 +105,14 @@ export default function SuppliersPage() {
           <tbody>
             {loading ? (
               <tr>
-                <td className="p-3" colSpan={6}>
+                <td className="p-3" colSpan={7}>
                   Loading...
                 </td>
               </tr>
             ) : (
-              suppliers.map((s) => (
+              suppliers.map((s, index) => (
                 <tr key={s.id} className="border-t">
+                  <td className="p-3 text-gray-500 tabular-nums">{index + 1}</td>
                   <td className="p-3 font-medium">{s.name}</td>
                   <td className="p-3">{s.contactPerson || "—"}</td>
                   <td className="p-3">{s.phone || "—"}</td>

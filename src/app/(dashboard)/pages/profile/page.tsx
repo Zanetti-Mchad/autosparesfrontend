@@ -1,4 +1,5 @@
 "use client";
+import { formatDisplayDate, formatDisplayDateTime } from '@/lib/formatDate';
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -690,7 +691,7 @@ const ProfilePage = () => {
                               <p className="font-semibold text-gray-800 text-lg">{log.action}</p>
                               <p className="text-gray-600 mt-2 flex items-center">
                                 <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                                {new Date(log.timestamp).toLocaleString()}
+                                {formatDisplayDateTime(log.timestamp)}
                               </p>
                             </div>
                             <div className="text-right">

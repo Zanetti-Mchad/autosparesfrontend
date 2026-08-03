@@ -1,16 +1,28 @@
 "use client";
+import { formatDisplayDate } from '@/lib/formatDate';
 import React, { useEffect, useRef, useState } from 'react';
 import { fetchApi } from '@/lib/apiConfig';
 import Image from 'next/image';
 import * as XLSX from 'xlsx';
-import { Printer, Download, Edit, Save, X } from 'lucide-react';
+import { Printer, Download, Edit, Save, X, Trash2 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 type InventoryItem = {
   id: string;
   name: string;
   price: number;
   category: string | { id: string; name: string };
+  brandId?: string | null;
+  brand?: { id: string; name: string } | null;
   size: string;
+  unit?: string | null;
   stock: number;
   quantity: number;
   description: string;
@@ -27,7 +39,9 @@ const ViewEditInventory = () => {
     description?: string;
     price?: number;
     category?: string;
+    brandId?: string;
     size?: string;
+    unit?: string;
     stock?: number;
     photo?: string;
   };
@@ -37,6 +51,10 @@ const ViewEditInventory = () => {
   const [error, setError] = useState('');
   const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([]);
   const [loadingCategories, setLoadingCategories] = useState(false);
+  const [units, setUnits] = useState<Array<{ id: string; name: string; abbreviation?: string | null }>>([]);
+  const [brands, setBrands] = useState<Array<{ id: string; name: string }>>([]);
+  const [deleting, setDeleting] = useState<InventoryItem | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Fetch inventory from API
   useEffect(() => {
@@ -103,6 +121,58 @@ const ViewEditInventory = () => {
       }
     };
     fetchCategories();
+
+    const fetchUnits = async () => {
+      try {
+        const token = localStorage.getItem('accessToken');
+        const res = await fetchApi('/catalog/units', {
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          } as any,
+        });
+        const list = Array.isArray((res as any)?.data)
+          ? (res as any).data
+          : Array.isArray(res)
+            ? res
+            : [];
+        setUnits(
+          list
+            .filter((u: any) => u.isActive !== false)
+            .map((u: any) => ({
+              id: String(u.id),
+              name: String(u.name),
+              abbreviation: u.abbreviation || null,
+            }))
+        );
+      } catch {
+        setUnits([]);
+      }
+    };
+    fetchUnits();
+
+    const fetchBrands = async () => {
+      try {
+        const token = localStorage.getItem('accessToken');
+        const res = await fetchApi('/catalog/brands', {
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          } as any,
+        });
+        const list = Array.isArray((res as any)?.data)
+          ? (res as any).data
+          : Array.isArray(res)
+            ? res
+            : [];
+        setBrands(
+          list
+            .filter((b: any) => b.isActive !== false)
+            .map((b: any) => ({ id: String(b.id), name: String(b.name) }))
+        );
+      } catch {
+        setBrands([]);
+      }
+    };
+    fetchBrands();
   }, []);
 
   const startEdit = (item: InventoryItem) => {
@@ -113,7 +183,9 @@ const ViewEditInventory = () => {
       description: item.description,
       price: item.price,
       category: typeof item.category === 'object' ? item.category.name : item.category,
+      brandId: item.brandId || item.brand?.id || '',
       size: item.size,
+      unit: item.unit || '',
       stock: item.quantity || item.stock,
       photo: item.photo
     });
@@ -138,19 +210,25 @@ const ViewEditInventory = () => {
           description: editForm.description,
           price: editForm.price,
           category: editForm.category,
+          brandId: editForm.brandId || null,
           size: editForm.size,
+          unit: editForm.unit || null,
           quantity: editForm.stock,
           photo: editForm.photo
         })
       });
       
+      const selectedBrand = brands.find((b) => b.id === editForm.brandId) || null;
       setInventory(inv => inv.map(item => item.id === id ? { 
         ...item, 
         name: editForm.name || item.name,
         description: editForm.description || item.description,
         price: editForm.price || item.price,
         category: editForm.category || item.category,
+        brandId: editForm.brandId || null,
+        brand: selectedBrand,
         size: editForm.size || item.size,
+        unit: editForm.unit ?? item.unit,
         quantity: editForm.stock || item.quantity,
         photo: editForm.photo || item.photo
       } as InventoryItem : item));
@@ -159,6 +237,40 @@ const ViewEditInventory = () => {
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update inventory item');
+    }
+  };
+
+  const requestDelete = (item: InventoryItem) => {
+    setDeleting(item);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleting) return;
+    try {
+      setDeleteLoading(true);
+      setError('');
+      const token = localStorage.getItem('accessToken');
+      if (!token) {
+        setError('Please login first to delete inventory items');
+        return;
+      }
+
+      await fetchApi(`/inventory/inventory/${deleting.id}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        } as any,
+      });
+
+      setInventory((inv) => inv.filter((item) => item.id !== deleting.id));
+      if (editingId === deleting.id) setEditingId(null);
+      setDeleting(null);
+      setSuccess('Item deleted successfully!');
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete inventory item');
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -220,7 +332,7 @@ const ViewEditInventory = () => {
             </style>
           </head>
           <body>
-            <h1>Inventory Report - ${new Date().toLocaleDateString()}</h1>
+            <h1>Inventory Report - ${formatDisplayDate(new Date())}</h1>
             <table>
               <thead>
                 <tr>
@@ -354,6 +466,20 @@ const ViewEditInventory = () => {
                   </select>
                 </div>
                 <div>
+                  <label className="block text-sm font-medium mb-2">Brand</label>
+                  <select
+                    name="brandId"
+                    value={editForm.brandId ?? ''}
+                    onChange={handleChange}
+                    className="w-full glass rounded-xl border border-border/50 px-4 py-2 text-sm bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all"
+                  >
+                    <option value="">No brand</option>
+                    {brands.map((b) => (
+                      <option key={b.id} value={b.id}>{b.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
                   <label className="block text-sm font-medium mb-2">Size</label>
                   <select
                     name="size"
@@ -380,6 +506,29 @@ const ViewEditInventory = () => {
                       placeholder="Enter custom size"
                     />
                   )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Unit</label>
+                  <select
+                    name="unit"
+                    value={editForm.unit ?? ''}
+                    onChange={handleChange}
+                    className="w-full glass rounded-xl border border-border/50 px-4 py-2 text-sm bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all"
+                  >
+                    <option value="">Select unit…</option>
+                    {units.map((u) => {
+                      const value = u.abbreviation || u.name;
+                      return (
+                        <option key={u.id} value={value}>
+                          {u.name}{u.abbreviation ? ` (${u.abbreviation})` : ''}
+                        </option>
+                      );
+                    })}
+                    {editForm.unit &&
+                      !units.some((u) => (u.abbreviation || u.name) === editForm.unit) && (
+                        <option value={editForm.unit}>{editForm.unit} (current)</option>
+                      )}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-2">Stock Quantity *</label>
@@ -433,7 +582,9 @@ const ViewEditInventory = () => {
             <th className="p-2 text-left">Name</th>
             <th className="p-2 text-left">Price</th>
             <th className="p-2 text-left">Category</th>
+            <th className="p-2 text-left">Brand</th>
             <th className="p-2 text-left">Size</th>
+            <th className="p-2 text-left">Unit</th>
             <th className="p-2 text-left">Stock</th>
             <th className="p-2 text-left">Description</th>
             <th className="p-2 text-center rounded-r-xl">Actions</th>
@@ -458,29 +609,87 @@ const ViewEditInventory = () => {
                 <td className="p-2 text-left text-muted-foreground text-sm">
                   {typeof item.category === 'object' ? item.category.name : item.category}
                 </td>
+                <td className="p-2 text-left text-muted-foreground text-sm">
+                  {item.brand?.name || '—'}
+                </td>
                 <td className="p-2 text-left text-muted-foreground text-sm">{item.size || '-'}</td>
+                <td className="p-2 text-left text-muted-foreground text-sm">{item.unit || '-'}</td>
                 <td className="p-2 text-left text-muted-foreground text-sm">{item.quantity || item.stock}</td>
                 <td className="p-2 text-left text-muted-foreground text-xs">{item.description}</td>
                 <td className="p-2 text-center">
-                  <button 
-                    onClick={() => startEdit(item)} 
-                    className="flex items-center gap-1 px-3 py-1 text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                  >
-                    <Edit className="w-4 h-4" />
-                    Edit
-                  </button>
+                  <div className="flex items-center justify-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => startEdit(item)}
+                      className="flex items-center gap-1 px-3 py-1 text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                    >
+                      <Edit className="w-4 h-4" />
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => requestDelete(item)}
+                      className="flex items-center gap-1 px-3 py-1 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Delete
+                    </button>
+                  </div>
                 </td>
               </>
             </tr>
           )) : (
             <tr>
-              <td colSpan={9} className="p-8 text-center text-muted-foreground">
+              <td colSpan={11} className="p-8 text-center text-muted-foreground">
                 {isLoading ? 'Loading inventory...' : 'No inventory items found'}
               </td>
             </tr>
           )}
         </tbody>
       </table>
+
+      <Dialog open={!!deleting} onOpenChange={(open) => !open && !deleteLoading && setDeleting(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete inventory item</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this item? This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          {deleting && (
+            <div className="rounded-lg border bg-gray-50 px-3 py-2 text-sm">
+              <div className="font-medium">{deleting.name}</div>
+              <div className="text-muted-foreground">
+                {[
+                  typeof deleting.category === 'object' ? deleting.category.name : deleting.category,
+                  deleting.size ? `Size: ${deleting.size}` : null,
+                  `Stock: ${deleting.quantity || deleting.stock}`,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <button
+              type="button"
+              disabled={deleteLoading}
+              onClick={() => setDeleting(null)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={deleteLoading}
+              onClick={confirmDelete}
+              className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50"
+            >
+              {deleteLoading ? 'Deleting…' : 'Delete'}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

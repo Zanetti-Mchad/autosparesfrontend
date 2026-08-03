@@ -1,4 +1,5 @@
 "use client";
+import { formatDisplayDate, formatDisplayDateTime } from '@/lib/formatDate';
 // src/components/users/UsersList.tsx
 import React, { useState, useEffect } from 'react';
 import { fetchApi } from '@/lib/apiConfig';
@@ -34,11 +35,7 @@ import {
 
 // Helper function to format dates
 const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
+  return formatDisplayDate(dateString);
 };
 
 interface UsersListProps {
@@ -669,7 +666,7 @@ const UsersList = ({ editMode = false }: UsersListProps) => {
                 <SelectTrigger className="bg-white border-yellow-300 focus:border-yellow-500 focus:ring-yellow-500">
                   <SelectValue placeholder="Select role" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white">
                   <SelectItem value="admin">Admin</SelectItem>
                   <SelectItem value="manager">Manager</SelectItem>
                   <SelectItem value="user">User</SelectItem>
@@ -689,7 +686,7 @@ const UsersList = ({ editMode = false }: UsersListProps) => {
                 <SelectTrigger className="bg-white border-yellow-300 focus:border-yellow-500 focus:ring-yellow-500">
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white">
                   <SelectItem value="active">Active</SelectItem>
                   <SelectItem value="inactive">Inactive</SelectItem>
                 </SelectContent>
@@ -701,7 +698,7 @@ const UsersList = ({ editMode = false }: UsersListProps) => {
                 Created Date
               </Label>
               <Input
-                value={editFormData.createdAt ? new Date(editFormData.createdAt).toLocaleDateString() : ''}
+                value={editFormData.createdAt ? formatDisplayDate(editFormData.createdAt) : ''}
                 disabled
                 className="bg-yellow-50 border-yellow-200 text-yellow-800"
               />
@@ -712,7 +709,7 @@ const UsersList = ({ editMode = false }: UsersListProps) => {
                 Last Login
               </Label>
               <Input
-                value={editFormData.lastLogin ? new Date(editFormData.lastLogin).toLocaleString() : 'Never'}
+                value={editFormData.lastLogin ? formatDisplayDateTime(editFormData.lastLogin) : 'Never'}
                 disabled
                 className="bg-yellow-50 border-yellow-200 text-yellow-800"
               />
@@ -832,10 +829,10 @@ const UsersList = ({ editMode = false }: UsersListProps) => {
             </div>
             <div className="w-full">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full bg-white">
                   <SelectValue placeholder="Filter by Status" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white">
                   <SelectItem value="all">All Statuses</SelectItem>
                   <SelectItem value="active">Active</SelectItem>
                   <SelectItem value="inactive">Inactive</SelectItem>
@@ -845,10 +842,10 @@ const UsersList = ({ editMode = false }: UsersListProps) => {
             </div>
             <div className="w-full">
               <Select value={roleFilter} onValueChange={setRoleFilter}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full bg-white">
                   <SelectValue placeholder="Filter by Role" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white">
                   <SelectItem value="all">All Roles</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
                   <SelectItem value="manager">Manager</SelectItem>
@@ -1024,7 +1021,7 @@ const UsersList = ({ editMode = false }: UsersListProps) => {
                                 {getStatusBadge(user.isActive)}
                               </div>
                               <div className="sm:hidden text-xs text-muted-foreground mt-1">
-                                Last: {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
+                                Last: {user.lastLogin ? formatDisplayDate(user.lastLogin) : 'Never'}
                               </div>
                             </div>
                           </div>
@@ -1056,7 +1053,7 @@ const UsersList = ({ editMode = false }: UsersListProps) => {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={6} className="text-center py-8 text-muted-foreground">
+                      <td colSpan={7} className="text-center py-8 text-muted-foreground">
                         No users found matching your criteria.
                       </td>
                     </tr>

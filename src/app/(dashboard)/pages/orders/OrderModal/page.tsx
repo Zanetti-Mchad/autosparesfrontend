@@ -1,4 +1,5 @@
 "use client";
+import { formatDisplayDate, formatDisplayDateTime } from '@/lib/formatDate';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { X, User, MapPin, Package, CreditCard, Info, Calendar, Phone, Mail, Home, MapPin as MapPinIcon, Printer } from 'lucide-react';
 import { fetchApi } from '@/lib/apiConfig';
@@ -79,22 +80,7 @@ const OrderModal: React.FC<OrderModalProps> = ({ order, mode, onClose, onSave })
 
   // Format date helper function
   const formatDate = useCallback((dateString: string): string => {
-    try {
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) return 'Invalid date';
-      const options: Intl.DateTimeFormatOptions = { 
-        year: 'numeric', 
-        month: 'short', 
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-      };
-      return date.toLocaleDateString('en-US', options);
-    } catch (error) {
-      console.error('Error formatting date:', error);
-      return 'Invalid date';
-    }
+    return formatDisplayDateTime(dateString, 'Invalid date');
   }, []);
 
   // Receipt print function with compact layout
@@ -111,32 +97,10 @@ const OrderModal: React.FC<OrderModalProps> = ({ order, mode, onClose, onSave })
     }
     
     try {
-      let business: {
-        businessName?: string;
-        businessTagLine?: string;
-        location?: string;
-        telephone?: string;
-        email?: string;
-        tin?: string;
-      } = {};
-      try {
-        const bizRes = await fetchApi('/settings/business').catch(() =>
-          fetchApi('/settings/view')
-        );
-        business = bizRes?.data || {};
-      } catch {
-        // use defaults
-      }
-
-      const companyName = business.businessName || 'Autospares';
-      const companyDetails = [
-        business.businessTagLine,
-        business.location,
-        business.telephone ? `Tel: ${business.telephone}` : '',
-        business.email ? `Email: ${business.email}` : '',
-        business.tin ? `TIN: ${business.tin}` : '',
-      ]
-        .filter(Boolean)
+      const business = await (await import('@/lib/businessSettings')).fetchBusinessSettings();
+      const { businessDisplayName, businessDetailLines } = await import('@/lib/businessSettings');
+      const companyName = businessDisplayName(business);
+      const companyDetails = businessDetailLines(business)
         .map((line) => `<p>${line}</p>`)
         .join('');
 
@@ -152,7 +116,7 @@ const OrderModal: React.FC<OrderModalProps> = ({ order, mode, onClose, onSave })
             body { 
               font-family: Arial, sans-serif; 
               margin: 0; 
-              padding: 15px; 
+              padding: 15px 15px 40px 15px; 
               font-size: 14px;
               line-height: 1.4;
               color: #000;
@@ -168,7 +132,7 @@ const OrderModal: React.FC<OrderModalProps> = ({ order, mode, onClose, onSave })
             .receipt-items td { padding: 5px 0; border-bottom: 1px solid #eee; }
             .receipt-totals { margin-top: 15px; text-align: right; }
             .receipt-totals p { margin: 5px 0; }
-            .receipt-footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; }
+            .receipt-footer { margin-top: 30px; padding-bottom: 28px; text-align: center; font-size: 12px; color: #666; }
             @media print {
               .no-print { display: none !important; }
               body { padding: 0; }
@@ -191,6 +155,7 @@ const OrderModal: React.FC<OrderModalProps> = ({ order, mode, onClose, onSave })
               <p><strong>Phone:</strong> ${order.phone}</p>
               <p><strong>Address:</strong> ${order.address}, ${order.shippingCity}, ${order.shippingDistrict}</p>
               <p><strong>Status:</strong> ${order.status} | <strong>Payment:</strong> ${order.paymentStatus || 'N/A'}</p>
+              <p><strong>Payment method:</strong> Cash payment</p>
             </div>
             
             <table class="receipt-items">
@@ -228,8 +193,10 @@ const OrderModal: React.FC<OrderModalProps> = ({ order, mode, onClose, onSave })
             ` : ''}
             
             <div class="receipt-footer">
-              <p>Thank you for your business!</p>
-              <p>Generated on ${new Date().toLocaleString()}</p>
+              <p><strong>Terms &amp; Conditions</strong></p>
+              <p>Payment: Cash payment</p>
+              <p style="margin-top:16px">Thank you for your business!</p>
+              <p>Generated on ${formatDisplayDateTime(new Date())}</p>
             </div>
             
             <div class="no-print" style="margin-top: 20px; text-align: center;">

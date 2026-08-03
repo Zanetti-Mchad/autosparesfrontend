@@ -1,4 +1,5 @@
 "use client";
+import { formatDisplayDate } from '@/lib/formatDate';
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -485,7 +486,7 @@ const AdminPage = () => {
                     ) : (
                       recentOrders.map((order, index) => {
                         const initials = order.customer.split(' ').map(n => n[0]).join('').toUpperCase();
-                        const timeAgo = new Date(order.date).toLocaleDateString();
+                        const timeAgo = formatDisplayDate(order.date);
                         return (
                           <div key={order.id} className={`flex items-center justify-between p-4 hover:bg-secondary/50 rounded-xl transition-all duration-300 group cursor-pointer ${isLoaded ? 'animate-fade-in' : 'opacity-0'}`} style={{ animationDelay: `${index * 100}ms` }}>
                             <div className="flex items-center space-x-4">

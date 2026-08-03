@@ -1,4 +1,5 @@
 'use client';
+import { formatDisplayDate, formatDisplayDateTime } from '@/lib/formatDate';
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { fetchApi, buildApiUrl } from '@/lib/apiConfig';
 import { 
@@ -252,8 +253,8 @@ const ReportsView = () => {
     if (!pnl) return;
     const w = window.open('', '_blank');
     if (!w) return;
-    const periodFrom = pnl.period?.from ? new Date(pnl.period.from).toLocaleDateString() : '—';
-    const periodTo = pnl.period?.to ? new Date(pnl.period.to).toLocaleDateString() : '—';
+    const periodFrom = pnl.period?.from ? formatDisplayDate(pnl.period.from) : '—';
+    const periodTo = pnl.period?.to ? formatDisplayDate(pnl.period.to) : '—';
     w.document.write(`
       <html><head><title>Mwima P&L Summary</title></head>
       <body style="font-family:sans-serif;padding:24px;max-width:640px">
@@ -734,7 +735,7 @@ const ReportsView = () => {
                   <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
                     <span>{o.customer || '—'}</span>
                     <span>•</span>
-                    <span>{o.date ? new Date(o.date).toLocaleString() : ''}</span>
+                    <span>{o.date ? formatDisplayDateTime(o.date) : ''}</span>
                   </div>
                   {Array.isArray(o.items) && o.items.length > 0 && (
                     <div className="mt-2 space-y-1">

@@ -2,6 +2,11 @@
 
 import React, { useEffect, useState } from "react";
 import { fetchApi } from "@/lib/apiConfig";
+import {
+  downloadDeliveryNotePdfWithBusiness,
+  printDeliveryNoteWithBusiness,
+  type DeliveryNoteDoc,
+} from "@/lib/deliveryNoteDocument";
 import toast from "react-hot-toast";
 
 type Delivery = {
@@ -17,7 +22,22 @@ type Delivery = {
   transportCost: number;
   customerSignature?: string;
   notes?: string;
-  order?: { id: string; orderNumber: string; status: string; total: number };
+  deliveredAt?: string;
+  createdAt?: string;
+  order?: {
+    id: string;
+    orderNumber: string;
+    status: string;
+    total: number;
+    notes?: string;
+    items?: Array<{
+      productName: string;
+      quantity: number;
+      unitPrice: number;
+      totalPrice: number;
+      size?: string;
+    }>;
+  };
 };
 
 type Order = {
@@ -31,6 +51,32 @@ type Order = {
 };
 
 const STATUSES = ["Pending", "Assigned", "OutForDelivery", "Delivered", "Failed", "Cancelled"];
+
+function toNoteDoc(d: Delivery): DeliveryNoteDoc {
+  return {
+    deliveryNumber: d.deliveryNumber,
+    status: d.status,
+    route: d.route,
+    driverName: d.driverName,
+    driverPhone: d.driverPhone,
+    customerName: d.customerName,
+    customerPhone: d.customerPhone,
+    deliveryAddress: d.deliveryAddress,
+    transportCost: d.transportCost,
+    customerSignature: d.customerSignature,
+    notes: d.notes,
+    deliveredAt: d.deliveredAt,
+    createdAt: d.createdAt,
+    order: d.order
+      ? {
+          orderNumber: d.order.orderNumber,
+          total: d.order.total,
+          notes: d.order.notes,
+          items: d.order.items,
+        }
+      : null,
+  };
+}
 
 export default function DeliveriesPage() {
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
@@ -126,11 +172,31 @@ export default function DeliveriesPage() {
     }
   };
 
+  const handlePrint = async (d: Delivery) => {
+    try {
+      await printDeliveryNoteWithBusiness(toNoteDoc(d));
+    } catch (e: any) {
+      toast.error(e.message || "Print failed");
+    }
+  };
+
+  const handlePdf = async (d: Delivery) => {
+    try {
+      await downloadDeliveryNotePdfWithBusiness(toNoteDoc(d));
+      toast.success("PDF downloaded");
+    } catch (e: any) {
+      toast.error(e.message || "PDF failed");
+    }
+  };
+
   return (
     <div className="p-4 md:p-6 space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Deliveries</h1>
-        <p className="text-sm text-gray-500">Routes, drivers, delivery notes & customer signatures</p>
+        <p className="text-sm text-gray-500">
+          Routes, drivers, delivery notes &amp; customer signatures. Orders marked Packed / Out for
+          delivery / Delivered in the pipeline also appear here.
+        </p>
       </div>
 
       <form onSubmit={create} className="grid md:grid-cols-3 gap-3 border rounded-xl p-4 bg-white">
@@ -192,66 +258,92 @@ export default function DeliveriesPage() {
           const isCancelled = d.status === "Cancelled";
           const locked = isDone || isCancelled;
           return (
-          <div key={d.id} className="border rounded-xl p-4 bg-white flex flex-col md:flex-row md:items-center gap-3 justify-between">
-            <div className="flex gap-3">
-              <span className="text-sm font-semibold text-gray-400 w-6 shrink-0 pt-0.5">{index + 1}.</span>
-              <div>
-              <div className="font-semibold">
-                {d.deliveryNumber}{" "}
-                <span className={`text-xs font-normal px-2 py-0.5 rounded ${
-                  isDone ? "bg-emerald-100 text-emerald-800" :
-                  isCancelled ? "bg-red-100 text-red-700" :
-                  "bg-gray-100"
-                }`}>
-                  {d.status}
+            <div
+              key={d.id}
+              className="border rounded-xl p-4 bg-white flex flex-col md:flex-row md:items-center gap-3 justify-between"
+            >
+              <div className="flex gap-3">
+                <span className="text-sm font-semibold text-gray-400 w-6 shrink-0 pt-0.5">
+                  {index + 1}.
                 </span>
-                {locked && !isDone && (
-                  <span className="ml-2 text-[10px] uppercase tracking-wide text-gray-400">Cancelled</span>
-                )}
+                <div>
+                  <div className="font-semibold">
+                    {d.deliveryNumber}{" "}
+                    <span
+                      className={`text-xs font-normal px-2 py-0.5 rounded ${
+                        isDone
+                          ? "bg-emerald-100 text-emerald-800"
+                          : isCancelled
+                            ? "bg-red-100 text-red-700"
+                            : "bg-gray-100"
+                      }`}
+                    >
+                      {d.status}
+                    </span>
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    {d.customerName || "—"} · {d.route || "No route"} · Driver{" "}
+                    {d.driverName || "unassigned"}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {d.deliveryAddress || "—"} · Cost UGX{" "}
+                    {(d.transportCost || 0).toLocaleString()}
+                    {d.order ? ` · Order ${d.order.orderNumber}` : ""}
+                  </div>
+                  {d.customerSignature && (
+                    <div className="text-xs text-emerald-700 mt-1">
+                      Signed: {d.customerSignature}
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="text-sm text-gray-600">
-                {d.customerName || "—"} · {d.route || "No route"} · Driver {d.driverName || "unassigned"}
-              </div>
-              <div className="text-xs text-gray-500">
-                {d.deliveryAddress || "—"} · Cost UGX {(d.transportCost || 0).toLocaleString()}
-                {d.order ? ` · Order ${d.order.orderNumber}` : ""}
-              </div>
-              {d.customerSignature && (
-                <div className="text-xs text-emerald-700 mt-1">Signed: {d.customerSignature}</div>
-              )}
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {!locked && STATUSES.filter((s) => s !== d.status).map((s) => (
+              <div className="flex flex-wrap gap-2">
                 <button
-                  key={s}
-                  onClick={() => setStatus(d.id, s)}
+                  type="button"
+                  onClick={() => handlePrint(d)}
                   className="text-xs border rounded px-2 py-1 hover:bg-gray-50"
                 >
-                  {s}
+                  Print note
                 </button>
-              ))}
-              {!locked && (
                 <button
-                  onClick={() => {
-                    setSignId(d.id);
-                    setSignature("");
-                  }}
-                  className="text-xs bg-emerald-600 text-white rounded px-2 py-1"
+                  type="button"
+                  onClick={() => handlePdf(d)}
+                  className="text-xs border rounded px-2 py-1 hover:bg-gray-50"
                 >
-                  Sign / Deliver
+                  PDF
                 </button>
-              )}
-              {isDone && (
-                <span className="text-xs text-emerald-700 self-center">Completed</span>
-              )}
+                {!locked &&
+                  STATUSES.filter((s) => s !== d.status).map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => setStatus(d.id, s)}
+                      className="text-xs border rounded px-2 py-1 hover:bg-gray-50"
+                    >
+                      {s}
+                    </button>
+                  ))}
+                {!locked && (
+                  <button
+                    onClick={() => {
+                      setSignId(d.id);
+                      setSignature("");
+                    }}
+                    className="text-xs bg-emerald-600 text-white rounded px-2 py-1"
+                  >
+                    Sign / Deliver
+                  </button>
+                )}
+                {isDone && (
+                  <span className="text-xs text-emerald-700 self-center">Completed</span>
+                )}
+              </div>
             </div>
-          </div>
           );
         })}
         {!deliveries.length && (
           <p className="text-sm text-gray-500 border rounded-xl p-6 bg-white text-center">
-            No deliveries yet. Create a delivery note above — it is saved to the database.
+            No deliveries yet. Create a note above, or mark an order Packed / Out for delivery /
+            Delivered in the Order Pipeline.
           </p>
         )}
       </div>
@@ -270,7 +362,10 @@ export default function DeliveriesPage() {
               <button className="px-3 py-2 border rounded-lg" onClick={() => setSignId(null)}>
                 Cancel
               </button>
-              <button className="px-3 py-2 bg-emerald-600 text-white rounded-lg" onClick={saveSignature}>
+              <button
+                className="px-3 py-2 bg-emerald-600 text-white rounded-lg"
+                onClick={saveSignature}
+              >
                 Confirm delivered
               </button>
             </div>

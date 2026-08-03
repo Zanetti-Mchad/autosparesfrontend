@@ -1,4 +1,5 @@
 "use client";
+import { formatDisplayDate } from '@/lib/formatDate';
 import React, { useState, useEffect, useCallback } from 'react';
 import { fetchApi } from '@/lib/apiConfig';
 import { CheckCircle, XCircle, DollarSign, Eye, Edit, Search, History } from 'lucide-react';
@@ -55,16 +56,8 @@ const toNumber = (val: any): number => {
   return isFinite(n) ? n : 0;
 };
 
-const formatOrderDate = (iso: string): string => {
-  if (!iso) return '';
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return iso;
-  const day = String(d.getDate()).padStart(2, '0');
-  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'];
-  const month = monthNames[d.getMonth()] || '';
-  const year = d.getFullYear();
-  return `${day} ${month} ${year}`;
-};
+const formatOrderDate = (iso: string): string => formatDisplayDate(iso, '');
+
 
 const getStatusColor = (status: string) => {
   switch (status) {
