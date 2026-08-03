@@ -57,7 +57,7 @@ export default function RolesPage() {
     const fromRoles = roles
       .map((r) => r.description?.trim())
       .filter((d): d is string => Boolean(d));
-    return [...new Set([...DESCRIPTION_PRESETS, ...fromRoles])];
+    return Array.from(new Set([...DESCRIPTION_PRESETS, ...fromRoles]));
   }, [roles]);
 
   const load = async () => {
