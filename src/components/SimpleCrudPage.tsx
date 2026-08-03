@@ -217,7 +217,6 @@ export default function SimpleCrudPage({
         <form onSubmit={submit} className="grid md:grid-cols-3 gap-3 border rounded-xl p-4 bg-white">
           {fields.map((f) => {
             const common = {
-              key: f.key,
               required: f.required,
               className: `border rounded-lg px-3 py-2 ${f.colSpan ? `md:col-span-${f.colSpan}` : ""}`,
               value: form[f.key] ?? "",
@@ -228,7 +227,7 @@ export default function SimpleCrudPage({
             };
             if (f.type === "select") {
               return (
-                <select {...common}>
+                <select key={f.key} {...common}>
                   <option value="">{f.placeholder || f.label}</option>
                   {(f.options || []).map((o) => (
                     <option key={o.value} value={o.value}>
@@ -239,9 +238,16 @@ export default function SimpleCrudPage({
               );
             }
             if (f.type === "textarea") {
-              return <textarea {...common} rows={2} className={`${common.className} md:col-span-3`} />;
+              return (
+                <textarea
+                  key={f.key}
+                  {...common}
+                  rows={2}
+                  className={`${common.className} md:col-span-3`}
+                />
+              );
             }
-            return <input {...common} type={f.type || "text"} />;
+            return <input key={f.key} {...common} type={f.type || "text"} />;
           })}
           <button type="submit" className="md:col-span-3 bg-blue-600 text-white rounded-lg py-2">
             {createLabel}

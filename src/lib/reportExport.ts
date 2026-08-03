@@ -195,7 +195,6 @@ export function downloadTableExcel(opts: {
   summaryLines?: string[];
 }) {
   // Lazy require keeps this module usable even if xlsx tree-shakes oddly in some builds
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const XLSX = require("xlsx") as typeof import("xlsx");
   const { title, columns, rows, sheetName, fileName, summaryLines } = opts;
 
