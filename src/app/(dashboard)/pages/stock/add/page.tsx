@@ -1,13 +1,18 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { fetchApi } from "@/lib/apiConfig";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ApiError, fetchApi } from "@/lib/apiConfig";
 import { formatDisplayDate, isDateInRange } from "@/lib/formatDate";
 import { canManageRecord, MANAGE_DENIED_REMARK } from "@/lib/canManage";
 import SearchableSelect from "@/components/SearchableSelect";
 import DateRangeFilter, { defaultStockDateRange } from "@/components/DateRangeFilter";
 import ManageActions from "@/components/ManageActions";
 import { downloadTablePdf, printTableReport } from "@/lib/reportExport";
+import {
+  downloadStockBulkTemplate,
+  parseStockBulkExcel,
+  type StockBulkRow,
+} from "@/lib/stockBulkExcel";
 import toast from "react-hot-toast";
 import {
   Dialog,
@@ -17,6 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { FileSpreadsheet, Upload } from "lucide-react";
 
 type Product = {
   id: string;
@@ -43,6 +49,16 @@ type Restock = {
   userId: string;
   inventory?: { id: string; name?: string | null; sku?: string | null } | null;
   user?: { id: string; firstName?: string | null; lastName?: string | null } | null;
+};
+
+type BulkResultRow = {
+  row: number;
+  ok: boolean;
+  error?: string;
+  inventoryId?: string;
+  productName?: string | null;
+  sku?: string | null;
+  quantity?: number;
 };
 
 function extractList(res: any): any[] {
@@ -82,6 +98,13 @@ export default function AddStockPage() {
   const [fromDate, setFromDate] = useState(initialRange.fromDate);
   const [toDate, setToDate] = useState(initialRange.toDate);
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [bulkPreview, setBulkPreview] = useState<StockBulkRow[]>([]);
+  const [bulkParseErrors, setBulkParseErrors] = useState<string[]>([]);
+  const [bulkFileName, setBulkFileName] = useState("");
+  const [bulkUploading, setBulkUploading] = useState(false);
+  const [bulkResults, setBulkResults] = useState<BulkResultRow[] | null>(null);
+
   const loadHistory = useCallback(async () => {
     try {
       const restockRes = await fetchApi("/stock/restocks");
@@ -111,6 +134,23 @@ export default function AddStockPage() {
       );
     } catch {
       setRows([]);
+    }
+  }, []);
+
+  const refreshProducts = useCallback(async () => {
+    try {
+      const prodRes = await fetchApi("/inventory/inventory?limit=500");
+      setProducts(
+        extractList(prodRes).map((p: any) => ({
+          id: String(p.id),
+          name: String(p.name || "Unnamed"),
+          quantity: Number(p.quantity || 0),
+          costPrice: p.costPrice ?? null,
+          sku: p.sku || null,
+        }))
+      );
+    } catch {
+      /* keep existing */
     }
   }, []);
 
@@ -227,6 +267,91 @@ export default function AddStockPage() {
     toast.error(MANAGE_DENIED_REMARK);
   };
 
+  const clearBulk = () => {
+    setBulkPreview([]);
+    setBulkParseErrors([]);
+    setBulkFileName("");
+    setBulkResults(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const onBulkFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setBulkResults(null);
+    setBulkFileName(file.name);
+    try {
+      const parsed = await parseStockBulkExcel(file);
+      setBulkParseErrors(parsed.errors);
+      setBulkPreview(parsed.rows);
+      if (parsed.rows.length === 0 && parsed.errors.length) {
+        toast.error(parsed.errors[0]);
+      } else if (parsed.errors.length) {
+        toast.error(`${parsed.errors.length} row(s) have issues — fix or remove them`);
+      } else {
+        toast.success(`${parsed.rows.length} row(s) ready to upload`);
+      }
+    } catch (err: any) {
+      setBulkPreview([]);
+      setBulkParseErrors([err.message || "Failed to read Excel file"]);
+      toast.error(err.message || "Failed to read Excel file");
+    }
+  };
+
+  const submitBulk = async () => {
+    if (bulkPreview.length === 0) {
+      toast.error("Upload an Excel file first");
+      return;
+    }
+
+    try {
+      setBulkUploading(true);
+      const res = await fetchApi("/stock/add-bulk", {
+        method: "POST",
+        body: JSON.stringify({
+          items: bulkPreview.map((r) => ({
+            sku: r.sku,
+            productName: r.productName,
+            quantity: r.quantity,
+            unitCost: r.unitCost ?? undefined,
+            storeName: r.storeName,
+            supplier: r.supplier,
+            notes: r.notes,
+          })),
+        }),
+      });
+
+      const data = res?.data || {};
+      const results: BulkResultRow[] = Array.isArray(data.results) ? data.results : [];
+      setBulkResults(results);
+      const ok = Number(data.successCount || 0);
+      const fail = Number(data.failCount || 0);
+      if (fail === 0) {
+        toast.success(`Added stock for ${ok} product(s)`);
+        clearBulk();
+      } else {
+        toast.error(`${ok} succeeded, ${fail} failed — see results below`);
+      }
+      await refreshProducts();
+      await loadHistory();
+    } catch (err: any) {
+      if (err instanceof ApiError && err.body?.data?.results) {
+        setBulkResults(err.body.data.results);
+        const ok = Number(err.body.data.successCount || 0);
+        const fail = Number(err.body.data.failCount || 0);
+        toast.error(`${ok} succeeded, ${fail} failed — see results below`);
+        if (ok > 0) {
+          await refreshProducts();
+          await loadHistory();
+        }
+      } else {
+        toast.error(err.message || "Bulk upload failed");
+      }
+    } finally {
+      setBulkUploading(false);
+    }
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     const qty = parseInt(quantity, 10);
@@ -257,21 +382,7 @@ export default function AddStockPage() {
       setUnitCost("");
       setSupplier("");
       setNotes("");
-      // Refresh products + history without failing the whole form if history API is old
-      try {
-        const prodRes = await fetchApi("/inventory/inventory?limit=500");
-        setProducts(
-          extractList(prodRes).map((p: any) => ({
-            id: String(p.id),
-            name: String(p.name || "Unnamed"),
-            quantity: Number(p.quantity || 0),
-            costPrice: p.costPrice ?? null,
-            sku: p.sku || null,
-          }))
-        );
-      } catch {
-        /* keep existing product list */
-      }
+      await refreshProducts();
       await loadHistory();
     } catch (err: any) {
       toast.error(err.message || "Failed to add stock");
@@ -446,6 +557,222 @@ export default function AddStockPage() {
           {saving && !editing ? "Saving…" : "Add Stock"}
         </button>
       </form>
+
+      <div className="border rounded-xl p-3 sm:p-4 bg-white space-y-4">
+        <div>
+          <h2 className="text-lg font-semibold">Bulk upload (Excel)</h2>
+          <p className="text-sm text-gray-500 mt-0.5">
+            Download the template, fill one row per product (SKU preferred), then upload.
+          </p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              try {
+                downloadStockBulkTemplate();
+                toast.success("Template downloaded");
+              } catch (err: any) {
+                toast.error(err.message || "Could not download template");
+              }
+            }}
+            className="inline-flex items-center justify-center gap-2 border rounded-lg px-4 py-2.5 min-h-11 text-sm font-medium hover:bg-gray-50"
+          >
+            <FileSpreadsheet className="h-4 w-4" />
+            Download template
+          </button>
+
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="inline-flex items-center justify-center gap-2 border rounded-lg px-4 py-2.5 min-h-11 text-sm font-medium hover:bg-gray-50"
+          >
+            <Upload className="h-4 w-4" />
+            Choose Excel file
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
+            className="hidden"
+            onChange={onBulkFile}
+          />
+
+          {bulkPreview.length > 0 && (
+            <>
+              <button
+                type="button"
+                disabled={bulkUploading}
+                onClick={submitBulk}
+                className="inline-flex items-center justify-center bg-blue-600 text-white rounded-lg px-4 py-2.5 min-h-11 text-sm font-medium disabled:opacity-50"
+              >
+                {bulkUploading ? "Uploading…" : `Upload ${bulkPreview.length} row(s)`}
+              </button>
+              <button
+                type="button"
+                disabled={bulkUploading}
+                onClick={clearBulk}
+                className="inline-flex items-center justify-center border rounded-lg px-4 py-2.5 min-h-11 text-sm text-gray-600"
+              >
+                Clear
+              </button>
+            </>
+          )}
+        </div>
+
+        {bulkFileName && (
+          <p className="text-xs text-gray-500">
+            File: <span className="font-medium text-gray-700">{bulkFileName}</span>
+          </p>
+        )}
+
+        <div className="rounded-lg bg-gray-50 border px-3 py-3 text-xs text-gray-600 space-y-2">
+          <p className="font-medium text-gray-800 text-sm">Excel columns — what they mean</p>
+          <p className="text-gray-500">
+            Restocks <span className="font-medium text-gray-700">existing</span> products only.
+            To create new products, use Add Product instead.
+          </p>
+          <ul className="space-y-1.5 list-none">
+            <li>
+              <span className="font-mono text-gray-800">SKU</span>
+              <span className="ml-1 rounded bg-blue-100 text-blue-800 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
+                Recommended
+              </span>
+              — Product code in the system. Preferred way to match the product.
+            </li>
+            <li>
+              <span className="font-mono text-gray-800">Product Name</span>
+              <span className="ml-1 rounded bg-amber-100 text-amber-900 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
+                If no SKU
+              </span>
+              — Exact product name. Use SKU if several products share a name.
+            </li>
+            <li>
+              <span className="font-mono text-gray-800">Quantity</span>
+              <span className="ml-1 rounded bg-red-100 text-red-800 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
+                Required
+              </span>
+              — How many units to add (positive whole number).
+            </li>
+            <li>
+              <span className="font-mono text-gray-800">Unit Cost</span>
+              <span className="ml-1 rounded bg-gray-200 text-gray-700 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
+                Optional
+              </span>
+              — Cost per unit in UGX. If blank, the product&apos;s current cost price is used.
+            </li>
+            <li>
+              <span className="font-mono text-gray-800">Store</span>
+              <span className="ml-1 rounded bg-gray-200 text-gray-700 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
+                Optional
+              </span>
+              — Exact store name, or leave blank for main stock.
+            </li>
+            <li>
+              <span className="font-mono text-gray-800">Supplier</span>
+              <span className="ml-1 rounded bg-gray-200 text-gray-700 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
+                Optional
+              </span>
+              — Who supplied this stock (free text).
+            </li>
+            <li>
+              <span className="font-mono text-gray-800">Notes</span>
+              <span className="ml-1 rounded bg-gray-200 text-gray-700 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
+                Optional
+              </span>
+              — Any extra remark for this restock.
+            </li>
+          </ul>
+          <p className="pt-1 border-t border-gray-200 text-gray-500">
+            <span className="font-medium text-gray-700">Required:</span> Quantity, plus SKU or Product Name.
+            Delete example rows before uploading unless they match real products.
+          </p>
+        </div>
+
+        {bulkParseErrors.length > 0 && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 space-y-1">
+            {bulkParseErrors.slice(0, 8).map((err, i) => (
+              <div key={i}>{err}</div>
+            ))}
+            {bulkParseErrors.length > 8 && (
+              <div>…and {bulkParseErrors.length - 8} more</div>
+            )}
+          </div>
+        )}
+
+        {bulkPreview.length > 0 && (
+          <div className="overflow-x-auto border rounded-lg">
+            <table className="min-w-full text-sm">
+              <thead className="bg-gray-50 text-left">
+                <tr>
+                  <th className="p-2 w-10 text-gray-500">#</th>
+                  <th className="p-2">SKU</th>
+                  <th className="p-2">Product</th>
+                  <th className="p-2">Qty</th>
+                  <th className="p-2">Unit cost</th>
+                  <th className="p-2">Store</th>
+                  <th className="p-2">Supplier</th>
+                </tr>
+              </thead>
+              <tbody>
+                {bulkPreview.slice(0, 50).map((r) => (
+                  <tr key={r.excelRow} className="border-t">
+                    <td className="p-2 text-gray-500">{r.excelRow}</td>
+                    <td className="p-2 font-mono text-xs">{r.sku || "—"}</td>
+                    <td className="p-2">{r.productName || "—"}</td>
+                    <td className="p-2">{r.quantity}</td>
+                    <td className="p-2">
+                      {r.unitCost != null ? `UGX ${Number(r.unitCost).toLocaleString()}` : "—"}
+                    </td>
+                    <td className="p-2">{r.storeName || "—"}</td>
+                    <td className="p-2">{r.supplier || "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {bulkPreview.length > 50 && (
+              <p className="p-2 text-xs text-gray-500 border-t">
+                Showing first 50 of {bulkPreview.length} rows
+              </p>
+            )}
+          </div>
+        )}
+
+        {bulkResults && bulkResults.length > 0 && (
+          <div className="space-y-2">
+            <h3 className="text-sm font-semibold">Upload results</h3>
+            <div className="overflow-x-auto border rounded-lg max-h-64 overflow-y-auto">
+              <table className="min-w-full text-sm">
+                <thead className="bg-gray-50 text-left sticky top-0">
+                  <tr>
+                    <th className="p-2">Row</th>
+                    <th className="p-2">Status</th>
+                    <th className="p-2">Product</th>
+                    <th className="p-2">Detail</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bulkResults.map((r) => (
+                    <tr key={r.row} className="border-t">
+                      <td className="p-2">{r.row}</td>
+                      <td className="p-2">
+                        <span className={r.ok ? "text-green-700" : "text-red-600"}>
+                          {r.ok ? "OK" : "Failed"}
+                        </span>
+                      </td>
+                      <td className="p-2">{r.productName || r.sku || "—"}</td>
+                      <td className="p-2 text-gray-600">
+                        {r.ok ? `+${r.quantity}` : r.error || "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
 
       <div className="space-y-3 min-w-0">
         <div className="flex flex-col gap-3">
