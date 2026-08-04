@@ -166,33 +166,33 @@ export default function OrderPipelinePage() {
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
+    <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 max-w-full overflow-x-hidden">
       <div>
-        <h1 className="text-2xl font-bold">Order Pipeline</h1>
+        <h1 className="text-xl sm:text-2xl font-bold">Order Pipeline</h1>
         <p className="text-sm text-gray-500">
           WhatsApp / Phone / Walk-in / Website → Pending → Preparing → Packed → Out → Delivered
         </p>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
         {counts.map((c) => (
           <button
             key={c.status}
             onClick={() => setFilter(filter === c.status ? "" : c.status)}
-            className={`border rounded-xl p-3 text-left ${
+            className={`border rounded-xl p-2.5 sm:p-3 text-left min-w-0 ${
               filter === c.status ? "border-blue-500 bg-blue-50" : "bg-white"
             }`}
           >
-            <div className="text-xs text-gray-500">{c.status}</div>
-            <div className="text-xl font-bold">{c.count}</div>
+            <div className="text-[10px] sm:text-xs text-gray-500 truncate">{c.status}</div>
+            <div className="text-lg sm:text-xl font-bold">{c.count}</div>
           </button>
         ))}
       </div>
 
-      <form onSubmit={createIntake} className="grid md:grid-cols-3 gap-3 border rounded-xl p-4 bg-white">
-        <h2 className="md:col-span-3 font-semibold text-sm">Receive new order</h2>
+      <form onSubmit={createIntake} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 border rounded-xl p-3 sm:p-4 bg-white">
+        <h2 className="sm:col-span-2 md:col-span-3 font-semibold text-sm">Receive new order</h2>
         <select
-          className="border rounded-lg px-3 py-2"
+          className="w-full border rounded-lg px-3 py-2 min-h-10"
           value={intake.source}
           onChange={(e) => setIntake({ ...intake, source: e.target.value })}
         >
@@ -219,13 +219,13 @@ export default function OrderPipelinePage() {
           }}
         />
         <input
-          className="border rounded-lg px-3 py-2"
+          className="w-full border rounded-lg px-3 py-2 min-h-10"
           placeholder="Phone"
           value={intake.customerPhone}
           onChange={(e) => setIntake({ ...intake, customerPhone: e.target.value })}
         />
         <select
-          className="border rounded-lg px-3 py-2"
+          className="w-full border rounded-lg px-3 py-2 min-h-10"
           value={intake.inventoryId}
           onChange={(e) => setIntake({ ...intake, inventoryId: e.target.value })}
           required
@@ -238,26 +238,26 @@ export default function OrderPipelinePage() {
           ))}
         </select>
         <input
-          className="border rounded-lg px-3 py-2"
+          className="w-full border rounded-lg px-3 py-2 min-h-10"
           type="number"
           min={1}
           value={intake.quantity}
           onChange={(e) => setIntake({ ...intake, quantity: e.target.value })}
         />
         <input
-          className="border rounded-lg px-3 py-2"
+          className="w-full border rounded-lg px-3 py-2 min-h-10"
           placeholder="Notes"
           value={intake.notes}
           onChange={(e) => setIntake({ ...intake, notes: e.target.value })}
         />
-        <button type="submit" className="md:col-span-3 bg-blue-600 text-white rounded-lg py-2">
+        <button type="submit" className="sm:col-span-2 md:col-span-3 bg-blue-600 text-white rounded-lg py-2.5 min-h-10">
           Add to pipeline
         </button>
       </form>
 
-      <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
         <select
-          className="border rounded-lg px-3 py-2 text-sm"
+          className="w-full sm:w-auto border rounded-lg px-3 py-2 text-sm min-h-10"
           value={sourceFilter}
           onChange={(e) => setSourceFilter(e.target.value)}
         >
@@ -269,7 +269,7 @@ export default function OrderPipelinePage() {
           ))}
         </select>
         {filter && (
-          <button className="text-sm text-blue-600" onClick={() => setFilter("")}>
+          <button className="text-sm text-blue-600 text-left" onClick={() => setFilter("")}>
             Clear status filter
           </button>
         )}

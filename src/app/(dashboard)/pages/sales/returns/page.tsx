@@ -217,16 +217,16 @@ export default function SalesReturnsPage() {
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-6 max-w-4xl mx-auto w-full">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">Sales Returns</h1>
+    <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 max-w-4xl mx-auto w-full overflow-x-hidden">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold">Sales Returns</h1>
           <p className="text-sm text-gray-500">Record returned sales</p>
         </div>
         <button
           type="button"
           onClick={load}
-          className="inline-flex items-center gap-2 px-4 py-2 text-sm border border-gray-300 rounded-lg bg-white hover:bg-gray-50"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm border border-gray-300 rounded-lg bg-white hover:bg-gray-50 min-h-10 w-full sm:w-auto"
         >
           <RefreshCw className="w-4 h-4" />
           Refresh
@@ -235,9 +235,9 @@ export default function SalesReturnsPage() {
 
       <form
         onSubmit={handleSubmit}
-        className="grid md:grid-cols-3 gap-3 border border-gray-300 rounded-xl p-4 bg-white"
+        className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 border border-gray-300 rounded-xl p-3 sm:p-4 bg-white"
       >
-        <div className="md:col-span-2">
+        <div className="sm:col-span-2">
           <label className="block text-xs font-medium text-gray-600 mb-1">Invoice #</label>
           <SearchableSelect
             value={invoiceId}
@@ -254,22 +254,22 @@ export default function SalesReturnsPage() {
             type="number"
             value={amount}
             readOnly
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-50 text-sm"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-50 text-sm min-h-10"
             placeholder="Amount"
           />
         </div>
-        <div className="md:col-span-3">
+        <div className="sm:col-span-2 md:col-span-3">
           <label className="block text-xs font-medium text-gray-600 mb-1">Reason</label>
           <input
             type="text"
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white text-sm"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white text-sm min-h-10"
             placeholder="Reason for return"
           />
         </div>
         {selectedInvoice && (
-          <div className="md:col-span-3 text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+          <div className="sm:col-span-2 md:col-span-3 text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 break-words">
             Returning <span className="font-medium">{selectedInvoice.invoiceNumber}</span>
             {selectedInvoice.customerCompany || selectedInvoice.customerName
               ? ` for ${selectedInvoice.customerCompany || selectedInvoice.customerName}`
@@ -283,13 +283,40 @@ export default function SalesReturnsPage() {
         <button
           type="submit"
           disabled={saving || !invoiceId}
-          className="md:col-span-3 bg-blue-600 text-white rounded-lg py-2 disabled:opacity-60"
+          className="sm:col-span-2 md:col-span-3 bg-blue-600 text-white rounded-lg py-2.5 min-h-10 disabled:opacity-60"
         >
           {saving ? "Recording..." : "Record Return"}
         </button>
       </form>
 
-      <div className="overflow-x-auto border border-gray-300 rounded-xl bg-white">
+      <div className="md:hidden space-y-3">
+        {loading ? (
+          <div className="border rounded-xl bg-white p-4 text-sm text-gray-500">Loading...</div>
+        ) : returns.length === 0 ? (
+          <div className="border rounded-xl bg-white p-4 text-sm text-gray-500">No returns recorded yet</div>
+        ) : (
+          returns.map((row, i) => (
+            <div key={row.id || i} className="border rounded-xl bg-white p-4 space-y-2">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-xs text-gray-400 font-semibold">{i + 1}.</div>
+                  <div className="font-medium">{row.returnNumber || "—"}</div>
+                  <div className="text-sm text-gray-600">{displayInvoiceNumber(row)}</div>
+                </div>
+                <div className="text-right shrink-0 font-semibold">
+                  {formatMoney(Number(row.total || 0))}
+                </div>
+              </div>
+              <div className="text-sm text-gray-600 break-words">{displayCustomer(row)}</div>
+              <div className="text-xs text-gray-500">
+                {row.reason || "No reason"} · {formatDisplayDate(row.returnedAt || row.createdAt || "")}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      <div className="hidden md:block overflow-x-auto border border-gray-300 rounded-xl bg-white">
         <table className="min-w-full text-sm">
           <thead className="bg-gray-50 text-left">
             <tr>

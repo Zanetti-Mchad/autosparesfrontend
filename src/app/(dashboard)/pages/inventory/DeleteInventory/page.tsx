@@ -89,7 +89,7 @@ const DeleteInventory = () => {
 
   if (isLoading) {
     return (
-      <div className="max-w-2xl mx-auto mt-10 p-8 glass rounded-2xl border border-border/50 shadow-medium">
+      <div className="max-w-2xl mx-auto mt-4 sm:mt-10 p-3 sm:p-4 md:p-8 glass rounded-2xl border border-border/50 shadow-medium">
         <div className="flex items-center justify-center py-12">
           <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
           <span className="ml-3 text-muted-foreground">Loading inventory...</span>
@@ -99,8 +99,8 @@ const DeleteInventory = () => {
   }
 
   return (
-    <div className="max-w-2xl mx-auto mt-10 p-8 glass rounded-2xl border border-border/50 shadow-medium">
-      <h2 className="text-xl font-bold mb-6">Delete Inventory Items</h2>
+    <div className="max-w-2xl mx-auto mt-4 sm:mt-10 p-3 sm:p-4 md:p-8 glass rounded-2xl border border-border/50 shadow-medium min-w-0 overflow-x-hidden">
+      <h2 className="text-lg sm:text-xl font-bold mb-6">Delete Inventory Items</h2>
       
       {error && (
         <div className="mb-6 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-sm">
@@ -115,17 +115,17 @@ const DeleteInventory = () => {
       )}
       <ul className="divide-y divide-border/30">
         {Array.isArray(inventory) && inventory.map((item, index) => (
-          <li key={item.id} className="py-4 flex items-center justify-between">
-            <div className="flex items-start gap-4">
-                <span className="font-bold text-lg text-slate-400 w-6 text-right pt-px">{index + 1}.</span>
-                <div>
-                    <div className="font-medium text-base">{item.name}</div>
-                    <div className="text-sm text-muted-foreground">{typeof item.category === 'object' ? item.category.name : item.category} | Size: {item.size || '-'} | UGX {item.price}</div>
+          <li key={item.id} className="py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-start gap-3 min-w-0">
+                <span className="font-bold text-lg text-slate-400 w-6 text-right pt-px shrink-0">{index + 1}.</span>
+                <div className="min-w-0">
+                    <div className="font-medium text-base break-words">{item.name}</div>
+                    <div className="text-sm text-muted-foreground break-words">{typeof item.category === 'object' ? item.category.name : item.category} | Size: {item.size || '-'} | UGX {item.price}</div>
                     <div className="text-xs text-muted-foreground">Stock: {typeof item.quantity === 'number' ? item.quantity : (item.stock ?? 0)}</div>
-                    <div className="text-xs text-muted-foreground">{item.description}</div>
+                    <div className="text-xs text-muted-foreground break-words">{item.description}</div>
                 </div>
             </div>
-            <button onClick={() => handleDelete(item.id)} className="text-error hover:underline">Delete</button>
+            <button onClick={() => handleDelete(item.id)} className="text-error hover:underline self-stretch sm:self-auto text-left sm:text-right pl-9 sm:pl-0 shrink-0">Delete</button>
           </li>
         ))}
       </ul>

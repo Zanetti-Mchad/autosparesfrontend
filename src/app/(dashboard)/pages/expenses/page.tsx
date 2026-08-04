@@ -278,74 +278,126 @@ export default function ExpensesPage() {
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">Expenses</h1>
+    <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 max-w-full overflow-x-hidden">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold">Expenses</h1>
           <p className="text-sm text-gray-500">Track operating costs for P&amp;L</p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="text-right mr-2">
-            <div className="text-xs text-gray-500">Filtered total</div>
-            <div className="text-xl font-bold text-red-600">{formatMoney(total)}</div>
+        <div className="flex flex-col gap-2 w-full sm:w-auto sm:items-end">
+          <div className="flex items-baseline justify-between sm:justify-end gap-3">
+            <span className="text-xs text-gray-500">Filtered total</span>
+            <span className="text-lg sm:text-xl font-bold text-red-600">{formatMoney(total)}</span>
           </div>
-          <button type="button" onClick={handlePrint} className="inline-flex items-center gap-2 px-3 py-2 text-sm border rounded-lg bg-white hover:bg-gray-50">
-            <Printer className="w-4 h-4" /> Print
-          </button>
-          <button type="button" onClick={handlePdf} className="inline-flex items-center gap-2 px-3 py-2 text-sm border rounded-lg bg-white hover:bg-gray-50">
-            <Download className="w-4 h-4" /> PDF
-          </button>
-          <button type="button" onClick={handleExcel} className="inline-flex items-center gap-2 px-3 py-2 text-sm border rounded-lg bg-white hover:bg-gray-50">
-            <FileSpreadsheet className="w-4 h-4" /> Excel
-          </button>
+          <div className="grid grid-cols-3 gap-2 w-full sm:flex sm:w-auto">
+            <button type="button" onClick={handlePrint} className="inline-flex items-center justify-center gap-1.5 px-2 sm:px-3 py-2 text-xs sm:text-sm border rounded-lg bg-white hover:bg-gray-50 min-h-10">
+              <Printer className="w-4 h-4 shrink-0" /> <span className="truncate">Print</span>
+            </button>
+            <button type="button" onClick={handlePdf} className="inline-flex items-center justify-center gap-1.5 px-2 sm:px-3 py-2 text-xs sm:text-sm border rounded-lg bg-white hover:bg-gray-50 min-h-10">
+              <Download className="w-4 h-4 shrink-0" /> <span className="truncate">PDF</span>
+            </button>
+            <button type="button" onClick={handleExcel} className="inline-flex items-center justify-center gap-1.5 px-2 sm:px-3 py-2 text-xs sm:text-sm border rounded-lg bg-white hover:bg-gray-50 min-h-10">
+              <FileSpreadsheet className="w-4 h-4 shrink-0" /> <span className="truncate">Excel</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="border rounded-xl p-4 bg-white flex flex-wrap items-end gap-3">
-        <div>
+      <div className="border rounded-xl p-3 sm:p-4 bg-white grid grid-cols-2 sm:flex sm:flex-wrap items-end gap-3">
+        <div className="min-w-0">
           <label className="block text-xs font-medium text-gray-600 mb-1">From</label>
-          <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="border rounded-lg px-3 py-2 bg-white text-sm" />
+          <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="w-full border rounded-lg px-2 sm:px-3 py-2 bg-white text-sm min-h-10" />
         </div>
-        <div>
+        <div className="min-w-0">
           <label className="block text-xs font-medium text-gray-600 mb-1">To</label>
-          <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="border rounded-lg px-3 py-2 bg-white text-sm" />
+          <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="w-full border rounded-lg px-2 sm:px-3 py-2 bg-white text-sm min-h-10" />
         </div>
-        <div>
+        <div className="col-span-2 sm:col-span-1 min-w-0 sm:min-w-[160px]">
           <label className="block text-xs font-medium text-gray-600 mb-1">Category</label>
-          <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="border rounded-lg px-3 py-2 bg-white text-sm min-w-[160px]">
+          <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="w-full border rounded-lg px-3 py-2 bg-white text-sm min-h-10">
             <option value="all">All categories</option>
             {categories.map((c) => (
               <option key={c} value={c}>{c}</option>
             ))}
           </select>
         </div>
-        <button type="button" onClick={load} className="inline-flex items-center gap-2 bg-blue-600 text-white rounded-lg px-4 py-2 text-sm">
+        <button type="button" onClick={load} className="col-span-2 sm:col-span-1 inline-flex items-center justify-center gap-2 bg-blue-600 text-white rounded-lg px-4 py-2 text-sm min-h-10">
           <Filter className="w-4 h-4" /> Apply filter
         </button>
       </div>
 
-      <form onSubmit={submit} className="grid md:grid-cols-4 gap-3 border rounded-xl p-4 bg-white">
-        <select className="border rounded-lg px-3 py-2 bg-white" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
+      <form onSubmit={submit} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 border rounded-xl p-3 sm:p-4 bg-white">
+        <select className="w-full border rounded-lg px-3 py-2 bg-white min-h-10" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
           {categories.map((c) => (
             <option key={c} value={c}>{c}</option>
           ))}
         </select>
-        <input className="border rounded-lg px-3 py-2 md:col-span-2 bg-white" placeholder="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-        <input required type="number" min="0" step="0.01" className="border rounded-lg px-3 py-2 bg-white" placeholder="Amount" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
-        <input type="date" className="border rounded-lg px-3 py-2 bg-white" value={form.expenseDate} onChange={(e) => setForm({ ...form, expenseDate: e.target.value })} />
-        <select className="border rounded-lg px-3 py-2 bg-white" value={form.paymentMethod} onChange={(e) => setForm({ ...form, paymentMethod: e.target.value })}>
+        <input className="w-full border rounded-lg px-3 py-2 sm:col-span-2 md:col-span-2 bg-white min-h-10" placeholder="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+        <input required type="number" min="0" step="0.01" className="w-full border rounded-lg px-3 py-2 bg-white min-h-10" placeholder="Amount" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
+        <input type="date" className="w-full border rounded-lg px-3 py-2 bg-white min-h-10" value={form.expenseDate} onChange={(e) => setForm({ ...form, expenseDate: e.target.value })} />
+        <select className="w-full border rounded-lg px-3 py-2 bg-white min-h-10" value={form.paymentMethod} onChange={(e) => setForm({ ...form, paymentMethod: e.target.value })}>
           <option>Cash</option>
           <option>Mobile Money</option>
           <option>Bank</option>
           <option>Card</option>
         </select>
-        <input className="border rounded-lg px-3 py-2 bg-white" placeholder="Reference" value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} />
-        <button type="submit" disabled={saving} className="md:col-span-4 bg-blue-600 text-white rounded-lg py-2 disabled:opacity-50">
+        <input className="w-full border rounded-lg px-3 py-2 bg-white min-h-10" placeholder="Reference" value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} />
+        <button type="submit" disabled={saving} className="sm:col-span-2 md:col-span-4 bg-blue-600 text-white rounded-lg py-2.5 min-h-10 disabled:opacity-50">
           {saving && !editing ? "Saving…" : "Add Expense"}
         </button>
       </form>
 
-      <div className="overflow-x-auto border rounded-xl bg-white">
+      {/* Mobile cards */}
+      <div className="md:hidden space-y-3">
+        {loading ? (
+          <div className="border rounded-xl bg-white p-4 text-sm text-gray-500">Loading...</div>
+        ) : expenses.length === 0 ? (
+          <div className="border rounded-xl bg-white p-4 text-sm text-gray-500">No expenses for this filter</div>
+        ) : (
+          expenses.map((e, index) => (
+            <div key={e.id} className="border rounded-xl bg-white p-4 space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-gray-400">{index + 1}.</span>
+                    <span className="font-medium truncate">{e.category}</span>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-0.5 break-words">{e.description || "—"}</p>
+                </div>
+                <div className="text-right shrink-0">
+                  <div className="font-semibold text-red-600">{formatMoney(e.amount)}</div>
+                  <div className="text-xs text-gray-500">{formatDisplayDate(e.expenseDate)}</div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
+                <div><span className="font-medium text-gray-600">Method:</span> {e.paymentMethod || "—"}</div>
+                <div className="truncate"><span className="font-medium text-gray-600">By:</span> {creatorLabel(e)}</div>
+              </div>
+              {canManageExpense(e) && (
+                <div className="flex gap-2 pt-1 border-t">
+                  <button
+                    type="button"
+                    onClick={() => openEdit(e)}
+                    className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 text-sm text-blue-600 border rounded-lg hover:bg-blue-50 min-h-10"
+                  >
+                    <Pencil className="w-3.5 h-3.5" /> Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => requestDelete(e)}
+                    className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 text-sm text-red-600 border rounded-lg hover:bg-red-50 min-h-10"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" /> Delete
+                  </button>
+                </div>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Desktop table */}
+      <div className="hidden md:block overflow-x-auto border rounded-xl bg-white">
         <table className="min-w-full text-sm">
           <thead className="bg-gray-50 text-left">
             <tr>
@@ -404,34 +456,34 @@ export default function ExpensesPage() {
       </div>
 
       {editing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-lg rounded-xl bg-white shadow-xl">
-            <div className="flex items-center justify-between border-b px-4 py-3">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4">
+          <div className="w-full max-w-lg max-h-[92dvh] overflow-y-auto rounded-t-2xl sm:rounded-xl bg-white shadow-xl">
+            <div className="sticky top-0 bg-white flex items-center justify-between border-b px-4 py-3">
               <h2 className="font-semibold">Edit expense</h2>
               <button type="button" onClick={() => setEditing(null)} className="p-1 rounded hover:bg-gray-100">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <form onSubmit={saveEdit} className="p-4 grid gap-3">
-              <select className="border rounded-lg px-3 py-2 bg-white" value={editForm.category} onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}>
+              <select className="w-full border rounded-lg px-3 py-2 bg-white min-h-10" value={editForm.category} onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}>
                 {categories.map((c) => (
                   <option key={c} value={c}>{c}</option>
                 ))}
               </select>
-              <input className="border rounded-lg px-3 py-2 bg-white" placeholder="Description" value={editForm.description} onChange={(e) => setEditForm({ ...editForm, description: e.target.value })} />
-              <input required type="number" min="0" step="0.01" className="border rounded-lg px-3 py-2 bg-white" placeholder="Amount" value={editForm.amount} onChange={(e) => setEditForm({ ...editForm, amount: e.target.value })} />
-              <input type="date" className="border rounded-lg px-3 py-2 bg-white" value={editForm.expenseDate} onChange={(e) => setEditForm({ ...editForm, expenseDate: e.target.value })} />
-              <select className="border rounded-lg px-3 py-2 bg-white" value={editForm.paymentMethod} onChange={(e) => setEditForm({ ...editForm, paymentMethod: e.target.value })}>
+              <input className="w-full border rounded-lg px-3 py-2 bg-white min-h-10" placeholder="Description" value={editForm.description} onChange={(e) => setEditForm({ ...editForm, description: e.target.value })} />
+              <input required type="number" min="0" step="0.01" className="w-full border rounded-lg px-3 py-2 bg-white min-h-10" placeholder="Amount" value={editForm.amount} onChange={(e) => setEditForm({ ...editForm, amount: e.target.value })} />
+              <input type="date" className="w-full border rounded-lg px-3 py-2 bg-white min-h-10" value={editForm.expenseDate} onChange={(e) => setEditForm({ ...editForm, expenseDate: e.target.value })} />
+              <select className="w-full border rounded-lg px-3 py-2 bg-white min-h-10" value={editForm.paymentMethod} onChange={(e) => setEditForm({ ...editForm, paymentMethod: e.target.value })}>
                 <option>Cash</option>
                 <option>Mobile Money</option>
                 <option>Bank</option>
                 <option>Card</option>
               </select>
-              <input className="border rounded-lg px-3 py-2 bg-white" placeholder="Reference" value={editForm.reference} onChange={(e) => setEditForm({ ...editForm, reference: e.target.value })} />
-              <textarea className="border rounded-lg px-3 py-2 bg-white" rows={2} placeholder="Notes" value={editForm.notes} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} />
-              <div className="flex justify-end gap-2 pt-2">
-                <button type="button" onClick={() => setEditing(null)} className="px-4 py-2 border rounded-lg">Cancel</button>
-                <button type="submit" disabled={saving} className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50">
+              <input className="w-full border rounded-lg px-3 py-2 bg-white min-h-10" placeholder="Reference" value={editForm.reference} onChange={(e) => setEditForm({ ...editForm, reference: e.target.value })} />
+              <textarea className="w-full border rounded-lg px-3 py-2 bg-white" rows={2} placeholder="Notes" value={editForm.notes} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} />
+              <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-2">
+                <button type="button" onClick={() => setEditing(null)} className="px-4 py-2 border rounded-lg min-h-10">Cancel</button>
+                <button type="submit" disabled={saving} className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50 min-h-10">
                   {saving ? "Saving…" : "Save changes"}
                 </button>
               </div>

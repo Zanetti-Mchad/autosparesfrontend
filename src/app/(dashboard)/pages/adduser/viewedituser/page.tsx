@@ -727,9 +727,9 @@ const UsersList = ({ editMode = false }: UsersListProps) => {
         </DialogContent>
       </Dialog>
 
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold flex items-center gap-3">
-          <Users className="w-8 h-8" />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-3">
+          <Users className="w-7 h-7 sm:w-8 sm:h-8 shrink-0" />
           User Management
         </h1>
         <div className="flex items-center space-x-2">

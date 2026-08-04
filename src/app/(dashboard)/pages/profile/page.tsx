@@ -444,32 +444,32 @@ const ProfilePage = () => {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 p-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 p-3 sm:p-4 md:p-8 overflow-x-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div className="space-y-2">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
+        <div className="space-y-1 sm:space-y-2 min-w-0">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             Profile
           </h1>
-          <p className="text-gray-600 text-lg">View your account details and activity</p>
+          <p className="text-gray-600 text-sm sm:text-lg">View your account details and activity</p>
         </div>
-        <div className="flex items-center space-x-4">
-          <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
-            <User className="w-6 h-6 text-white" />
+        <div className="flex items-center space-x-4 shrink-0">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+            <User className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-8">
         {/* Sidebar Navigation */}
         <div className="lg:col-span-1">
-          <div className="bg-white rounded-3xl shadow-xl border border-gray-200 p-6 backdrop-blur-sm">
-            <div className="space-y-3">
+          <div className="bg-white rounded-2xl sm:rounded-3xl shadow-xl border border-gray-200 p-3 sm:p-6 backdrop-blur-sm">
+            <div className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-visible pb-1 lg:pb-0 -mx-1 px-1">
               {tabs.map((tab, index) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`w-full flex items-center space-x-4 px-6 py-4 rounded-2xl text-left transition-all duration-300 transform hover:scale-105 ${
+                  className={`flex items-center space-x-3 sm:space-x-4 px-4 sm:px-6 py-3 sm:py-4 rounded-xl sm:rounded-2xl text-left transition-all duration-300 shrink-0 lg:w-full ${
                     activeTab === tab.id
                       ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/25'
                       : 'text-gray-700 hover:bg-gray-100 hover:shadow-md'
@@ -479,7 +479,7 @@ const ProfilePage = () => {
                   <div className={`p-2 rounded-lg ${activeTab === tab.id ? 'bg-white/20' : 'bg-gray-100'}`}>
                     <tab.icon className={`w-5 h-5 ${activeTab === tab.id ? 'text-white' : 'text-gray-600'}`} />
                   </div>
-                  <span className="font-semibold text-lg">{tab.name}</span>
+                  <span className="font-semibold text-sm sm:text-lg whitespace-nowrap">{tab.name}</span>
                 </button>
               ))}
             </div>
@@ -487,12 +487,12 @@ const ProfilePage = () => {
         </div>
 
         {/* Main Content */}
-        <div className="lg:col-span-3">
-          <div className="bg-white rounded-3xl shadow-xl border border-gray-200 overflow-hidden">
+        <div className="lg:col-span-3 min-w-0">
+          <div className="bg-white rounded-2xl sm:rounded-3xl shadow-xl border border-gray-200 overflow-hidden">
             {/* Profile Information Tab */}
             {activeTab === 'profile' && (
-              <div className="p-8 bg-gradient-to-br from-blue-50 to-purple-50">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="p-4 sm:p-6 md:p-8 bg-gradient-to-br from-blue-50 to-purple-50">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
                   {/* Avatar Section */}
                   <div className="md:col-span-1 flex flex-col items-center space-y-6">
                     <div className="relative group">
@@ -612,7 +612,7 @@ const ProfilePage = () => {
 
             {/* Activity Logs Tab */}
             {activeTab === 'logs' && (
-              <div className="p-8 bg-gradient-to-br from-gray-50 to-blue-50">
+              <div className="p-4 sm:p-6 md:p-8 bg-gradient-to-br from-gray-50 to-blue-50">
                 <div className="flex items-center justify-between mb-8">
                   <div className="space-y-2">
                     <h3 className="text-2xl font-bold text-gray-800 flex items-center">
@@ -756,7 +756,7 @@ const ProfilePage = () => {
 
             {/* Password Reset Tab */}
             {activeTab === 'security' && (
-              <div className="p-8 bg-gradient-to-br from-gray-50 to-blue-50">
+              <div className="p-4 sm:p-6 md:p-8 bg-gradient-to-br from-gray-50 to-blue-50">
                 <div className="space-y-2 mb-8">
                   <h3 className="text-2xl font-bold text-gray-800 flex items-center">
                     <Key className="w-6 h-6 mr-3 text-blue-500" />
@@ -780,7 +780,7 @@ const ProfilePage = () => {
                   <h4 className="text-lg font-semibold text-gray-800 mb-4">Reset via Verification Code</h4>
                   <div className="space-y-4 mb-6">
                     <p className="text-sm text-gray-600 mb-2">Send verification code to:</p>
-                    <div className="flex space-x-4">
+                    <div className="flex flex-col sm:flex-row gap-2 sm:space-x-4 sm:gap-0">
                       <button
                         type="button"
                         onClick={() => {

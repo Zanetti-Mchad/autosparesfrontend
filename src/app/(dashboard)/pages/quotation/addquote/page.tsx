@@ -623,7 +623,7 @@ const CreateQuote = () => {
                   </div>
                 </div>
 
-                <div className="space-y-2 col-span-2">
+                <div className="space-y-2 md:col-span-2">
                   <label className="font-medium text-sm block">Product</label>
                   <select
                     value={item.productId}

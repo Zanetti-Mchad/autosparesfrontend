@@ -474,20 +474,20 @@ const SettingsView: React.FC = () => {
   }
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold mb-2">Business Settings</h1>
-        <p className="text-muted-foreground">
+    <div className="p-3 sm:p-4 md:p-6 max-w-6xl mx-auto overflow-x-hidden">
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-xl sm:text-2xl font-bold mb-2">Business Settings</h1>
+        <p className="text-muted-foreground text-sm sm:text-base">
           Configure your business information, logo, and preferences. This information will be used throughout the system.
         </p>
       </div>
-      <form onSubmit={handleSubmit} className="space-y-8">
+      <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
         {/* Logo Upload Section */}
-        <div className="glass p-6 rounded-2xl border border-border/50">
+        <div className="glass p-4 sm:p-6 rounded-2xl border border-border/50">
           <h2 className="text-lg font-semibold mb-4">Business Logo</h2>
-          <div className="flex items-center space-x-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:space-x-6 sm:gap-0">
             <div className="flex-shrink-0">
-              <div className="w-32 h-32 rounded-xl border-2 border-dashed border-border/50 bg-background/50 relative group overflow-hidden">
+              <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-xl border-2 border-dashed border-border/50 bg-background/50 relative group overflow-hidden">
                 {uploading ? (
                   <div className="absolute inset-0 flex flex-col items-center justify-center p-4 bg-background/80">
                     <Loader2 className="w-6 h-6 text-primary animate-spin mb-2" />

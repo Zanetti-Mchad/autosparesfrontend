@@ -113,9 +113,9 @@ export default function ProductionPage() {
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
+    <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 max-w-full overflow-x-hidden">
       <div>
-        <h1 className="text-2xl font-bold">Production</h1>
+        <h1 className="text-xl sm:text-2xl font-bold">Production</h1>
         <p className="text-sm text-gray-500">Daily birds received, slaughtered, yield, waste & packs</p>
       </div>
 
@@ -140,9 +140,9 @@ export default function ProductionPage() {
         </div>
       )}
 
-      <form onSubmit={submit} className="border rounded-xl p-4 bg-white space-y-4">
+      <form onSubmit={submit} className="border rounded-xl p-3 sm:p-4 bg-white space-y-4">
         <h2 className="font-semibold">Log today&apos;s processing</h2>
-        <div className="grid md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
           {[
             ["birdsReceived", "Birds received"],
             ["birdsSlaughtered", "Birds slaughtered"],
@@ -153,14 +153,14 @@ export default function ProductionPage() {
           ].map(([key, label]) => (
             <input
               key={key}
-              className="border rounded-lg px-3 py-2"
+              className="w-full border rounded-lg px-3 py-2 min-h-10"
               placeholder={label}
               value={(form as any)[key]}
               onChange={(e) => setForm({ ...form, [key]: e.target.value })}
             />
           ))}
           <input
-            className="border rounded-lg px-3 py-2 md:col-span-3"
+            className="w-full border rounded-lg px-3 py-2 sm:col-span-2 md:col-span-3 min-h-10"
             placeholder="Notes"
             value={form.notes}
             onChange={(e) => setForm({ ...form, notes: e.target.value })}
@@ -262,7 +262,7 @@ export default function ProductionPage() {
         />
       </div>
 
-      <div className="overflow-x-auto border rounded-xl bg-white">
+      <div className="overflow-x-auto border rounded-xl bg-white hidden md:block">
         <table className="min-w-full text-sm">
           <thead className="bg-gray-50 text-left">
             <tr>
@@ -301,6 +301,36 @@ export default function ProductionPage() {
             )}
           </tbody>
         </table>
+      </div>
+
+      <div className="md:hidden space-y-3">
+        {filteredLogs.length === 0 ? (
+          <div className="border rounded-xl bg-white p-4 text-sm text-gray-500">
+            No production logs for this period
+          </div>
+        ) : (
+          filteredLogs.map((l, index) => (
+            <div key={l.id} className="border rounded-xl bg-white p-4 space-y-2">
+              <div className="flex justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="text-xs text-gray-400 font-semibold">{index + 1}.</div>
+                  <div className="font-mono text-xs break-all">{l.batchNumber}</div>
+                  <div className="text-sm text-gray-600">{formatDisplayDate(l.productionDate)}</div>
+                </div>
+                <div className="text-right shrink-0">
+                  <div className="font-semibold text-emerald-700">{l.yieldPercent}%</div>
+                  <div className="text-xs text-gray-500">{l.packsCompleted} packs</div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
+                <div>Received: {l.birdsReceived}</div>
+                <div>Slaughtered: {l.birdsSlaughtered}</div>
+                <div>Dressed: {l.dressedWeightKg} kg</div>
+                <div>Waste: {l.wasteKg} kg</div>
+              </div>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );

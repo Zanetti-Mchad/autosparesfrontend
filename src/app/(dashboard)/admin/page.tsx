@@ -488,24 +488,24 @@ const AdminPage = () => {
                         const initials = order.customer.split(' ').map(n => n[0]).join('').toUpperCase();
                         const timeAgo = formatDisplayDate(order.date);
                         return (
-                          <div key={order.id} className={`flex items-center justify-between p-4 hover:bg-secondary/50 rounded-xl transition-all duration-300 group cursor-pointer ${isLoaded ? 'animate-fade-in' : 'opacity-0'}`} style={{ animationDelay: `${index * 100}ms` }}>
-                            <div className="flex items-center space-x-4">
-                              <div className="w-12 h-12 bg-gradient-to-r from-blue-400 to-purple-500 rounded-xl flex items-center justify-center text-white font-semibold shadow-medium">
+                          <div key={order.id} className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 sm:p-4 hover:bg-secondary/50 rounded-xl transition-all duration-300 group cursor-pointer ${isLoaded ? 'animate-fade-in' : 'opacity-0'}`} style={{ animationDelay: `${index * 100}ms` }}>
+                            <div className="flex items-center space-x-3 sm:space-x-4 min-w-0">
+                              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-blue-400 to-purple-500 rounded-xl flex items-center justify-center text-white font-semibold shadow-medium shrink-0">
                                 {initials}
                               </div>
-                              <div>
-                                <p className="font-semibold text-foreground">{order.customer}</p>
-                                <p className="text-sm text-muted-foreground">{order.orderNumber || order.id} • {timeAgo}</p>
+                              <div className="min-w-0">
+                                <p className="font-semibold text-foreground truncate">{order.customer}</p>
+                                <p className="text-sm text-muted-foreground truncate">{order.orderNumber || order.id} • {timeAgo}</p>
                               </div>
                             </div>
-                            <div className="flex items-center space-x-4">
-                              <div className="text-right">
-                                <p className="font-bold text-foreground text-lg">UGX {formatAmount(order.total)}</p>
+                            <div className="flex items-center justify-between sm:justify-end space-x-3 sm:space-x-4 pl-13 sm:pl-0">
+                              <div className="text-left sm:text-right">
+                                <p className="font-bold text-foreground text-base sm:text-lg">UGX {formatAmount(order.total)}</p>
                                 <span className={`text-xs px-3 py-1 rounded-full border font-medium ${getStatusColor(order.status)}`}>
                                   {order.status}
                                 </span>
                               </div>
-                              <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                              <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors shrink-0 hidden sm:block" />
                             </div>
                           </div>
                         );

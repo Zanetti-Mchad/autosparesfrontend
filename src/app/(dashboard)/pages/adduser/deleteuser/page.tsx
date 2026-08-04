@@ -198,10 +198,10 @@ const DeleteUser = () => {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-3 sm:p-4 md:p-6 max-w-full overflow-x-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 min-w-0">
           <button 
             onClick={handleCancel}
             className="flex items-center text-muted-foreground hover:text-foreground transition-colors"
@@ -209,13 +209,13 @@ const DeleteUser = () => {
             <ArrowLeft className="w-5 h-5 mr-1" />
             <span>Back</span>
           </button>
-          <div className="h-6 w-px bg-border mx-2" />
-          <h1 className="text-3xl font-bold flex items-center gap-3">
-            <Trash2 className="w-8 h-8 text-red-600" />
+          <div className="h-6 w-px bg-border hidden sm:block mx-2" />
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold flex items-center gap-2 sm:gap-3">
+            <Trash2 className="w-6 h-6 sm:w-8 sm:h-8 text-red-600 shrink-0" />
             Delete Users
           </h1>
         </div>
-        <Button onClick={() => window.location.reload()} className="h-9 rounded-md px-3 border border-input bg-background hover:bg-accent hover:text-accent-foreground">
+        <Button onClick={() => window.location.reload()} className="h-9 rounded-md px-3 border border-input bg-background hover:bg-accent hover:text-accent-foreground w-full sm:w-auto">
           <RefreshCw className="w-4 h-4 mr-2" />
           Refresh
         </Button>
@@ -239,7 +239,7 @@ const DeleteUser = () => {
 
       {/* Users List */}
       <Card className="overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="hidden md:block overflow-x-auto">
           {filteredUsers.length > 0 ? (
             <table className="min-w-full divide-y divide-border">
               <thead className="bg-secondary/20">
@@ -332,6 +332,54 @@ const DeleteUser = () => {
             </table>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
+              {searchTerm ? 'No users found matching your search.' : 'No users found.'}
+            </div>
+          )}
+        </div>
+
+        <div className="md:hidden p-3 space-y-3">
+          {filteredUsers.length > 0 ? (
+            filteredUsers.map((user, index) => (
+              <div key={user.id} className="border rounded-xl p-4 space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-full overflow-hidden shrink-0">
+                    {user.photo ? (
+                      <Image 
+                        src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/shopstaff-photos/${user.photo}`}
+                        alt={`${user.firstName} ${user.lastName}`}
+                        width={40}
+                        height={40}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-primary/10 flex items-center justify-center">
+                        <User className="w-5 h-5 text-primary" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs text-muted-foreground font-semibold">{index + 1}.</div>
+                    <div className="font-medium truncate">{user.firstName} {user.lastName}</div>
+                    <div className="text-sm text-muted-foreground truncate">{user.email}</div>
+                  </div>
+                  <Button
+                    onClick={() => openDeleteDialog(user)}
+                    className="h-8 w-8 p-0 bg-red-600 hover:bg-red-700 text-white shrink-0"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2 items-center text-sm">
+                  {getRoleBadge(user.role)}
+                  {getStatusBadge(user.isActive)}
+                  <span className="text-xs text-muted-foreground">
+                    Last: {user.lastLogin ? formatDisplayDate(user.lastLogin) : 'Never'}
+                  </span>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="text-center py-8 text-muted-foreground text-sm">
               {searchTerm ? 'No users found matching your search.' : 'No users found.'}
             </div>
           )}

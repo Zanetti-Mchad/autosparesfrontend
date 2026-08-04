@@ -1,6 +1,7 @@
 "use client";
 
 import SimpleReportPage from "@/components/SimpleReportPage";
+import { formatDisplayDate } from "@/lib/formatDate";
 
 export default function Page() {
   return (
@@ -17,6 +18,11 @@ export default function Page() {
       columns={[
         { key: "orderNumber", label: "Order #" },
         { key: "customerName", label: "Customer" },
+        {
+          key: "createdAt",
+          label: "Date",
+          render: (row: any) => formatDisplayDate(row.createdAt),
+        },
         {
           key: "total",
           label: "Total",

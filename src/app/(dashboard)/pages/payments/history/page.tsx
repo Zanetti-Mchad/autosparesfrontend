@@ -244,17 +244,17 @@ export default function TransactionHistoryPage() {
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 max-w-full overflow-x-hidden">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Transaction History</h1>
+          <h1 className="text-xl sm:text-2xl font-bold">Transaction History</h1>
           <p className="text-sm text-gray-500">Cash, sale payments, and transfers</p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
           <button
             type="button"
             onClick={handlePrint}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm border rounded-lg bg-white hover:bg-gray-50"
+            className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 text-sm border rounded-lg bg-white hover:bg-gray-50"
           >
             <Printer className="w-4 h-4" />
             Print
@@ -262,15 +262,15 @@ export default function TransactionHistoryPage() {
           <button
             type="button"
             onClick={handleDownloadPdf}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm border rounded-lg bg-white hover:bg-gray-50"
+            className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 text-sm border rounded-lg bg-white hover:bg-gray-50"
           >
             <Download className="w-4 h-4" />
-            Download PDF
+            PDF
           </button>
           <button
             type="button"
             onClick={load}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm border rounded-lg bg-white hover:bg-gray-50"
+            className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 text-sm border rounded-lg bg-white hover:bg-gray-50"
           >
             <RefreshCw className="w-4 h-4" />
             Refresh
@@ -278,55 +278,55 @@ export default function TransactionHistoryPage() {
         </div>
       </div>
 
-      <div className="border rounded-xl p-4 bg-white flex flex-wrap items-end gap-3">
-        <div>
+      <div className="border rounded-xl p-3 sm:p-4 bg-white flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-end gap-3">
+        <div className="flex-1 min-w-0">
           <label className="block text-xs font-medium text-gray-600 mb-1">From</label>
           <input
             type="date"
             value={fromDate}
             onChange={(e) => setFromDate(e.target.value)}
-            className="border rounded-lg px-3 py-2 bg-white text-sm"
+            className="w-full border rounded-lg px-3 py-2 bg-white text-sm min-h-10"
           />
         </div>
-        <div>
+        <div className="flex-1 min-w-0">
           <label className="block text-xs font-medium text-gray-600 mb-1">To</label>
           <input
             type="date"
             value={toDate}
             onChange={(e) => setToDate(e.target.value)}
-            className="border rounded-lg px-3 py-2 bg-white text-sm"
+            className="w-full border rounded-lg px-3 py-2 bg-white text-sm min-h-10"
           />
         </div>
         <button
           type="button"
           onClick={load}
-          className="inline-flex items-center gap-2 bg-blue-600 text-white rounded-lg px-4 py-2 text-sm"
+          className="inline-flex items-center justify-center gap-2 bg-blue-600 text-white rounded-lg px-4 py-2.5 text-sm min-h-10"
         >
           <Filter className="w-4 h-4" />
           Apply filter
         </button>
       </div>
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="border rounded-xl p-4 bg-white">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="border rounded-xl p-3 sm:p-4 bg-white">
           <div className="text-xs text-gray-500">Cash In</div>
-          <div className="text-lg font-semibold mt-1">{formatMoney(totals.cashIn)}</div>
+          <div className="text-base sm:text-lg font-semibold mt-1 break-all">{formatMoney(totals.cashIn)}</div>
         </div>
-        <div className="border rounded-xl p-4 bg-white">
+        <div className="border rounded-xl p-3 sm:p-4 bg-white">
           <div className="text-xs text-gray-500">Cash Out</div>
-          <div className="text-lg font-semibold mt-1">{formatMoney(totals.cashOut)}</div>
+          <div className="text-base sm:text-lg font-semibold mt-1 break-all">{formatMoney(totals.cashOut)}</div>
         </div>
-        <div className="border rounded-xl p-4 bg-white">
+        <div className="border rounded-xl p-3 sm:p-4 bg-white">
           <div className="text-xs text-gray-500">Net</div>
-          <div className="text-lg font-semibold mt-1">{formatMoney(totals.net)}</div>
+          <div className="text-base sm:text-lg font-semibold mt-1 break-all">{formatMoney(totals.net)}</div>
         </div>
-        <div className="border rounded-xl p-4 bg-white">
+        <div className="border rounded-xl p-3 sm:p-4 bg-white">
           <div className="text-xs text-gray-500">Transactions</div>
-          <div className="text-lg font-semibold mt-1">{totals.count}</div>
+          <div className="text-base sm:text-lg font-semibold mt-1">{totals.count}</div>
         </div>
       </div>
 
-      <div className="overflow-x-auto border rounded-xl bg-white">
+      <div className="overflow-x-auto border rounded-xl bg-white hidden md:block">
         <table className="min-w-full text-sm">
           <thead className="bg-gray-50 text-left">
             <tr>
@@ -367,6 +367,35 @@ export default function TransactionHistoryPage() {
             )}
           </tbody>
         </table>
+      </div>
+
+      <div className="md:hidden space-y-3">
+        {loading ? (
+          <div className="border rounded-xl bg-white p-4 text-sm text-gray-500">Loading...</div>
+        ) : rows.length === 0 ? (
+          <div className="border rounded-xl bg-white p-4 text-sm text-gray-500">
+            No transactions for this date range
+          </div>
+        ) : (
+          rows.map((r, i) => (
+            <div key={r.id || i} className="border rounded-xl bg-white p-4 space-y-2">
+              <div className="flex justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="text-xs text-gray-400 font-semibold">{i + 1}.</div>
+                  <div className="font-medium">{r.kind || "—"} · {r.type || "—"}</div>
+                  <div className="text-xs text-gray-500">{r.method || "—"}</div>
+                </div>
+                <div className="text-right shrink-0 font-semibold text-sm">
+                  {formatMoney(Number(r.amount || 0))}
+                </div>
+              </div>
+              <div className="text-xs text-gray-500 break-words">
+                {r.notes || r.reference || "—"}
+              </div>
+              <div className="text-xs text-gray-500">{formatDisplayDate(r.date || r.createdAt)}</div>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );

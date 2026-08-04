@@ -2,10 +2,10 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { fetchApi } from "@/lib/apiConfig";
-import { formatDisplayDate } from "@/lib/formatDate";
+import { formatDisplayDate, isDateInRange } from "@/lib/formatDate";
 import { smsService } from "@/lib/sms";
 import toast from "react-hot-toast";
-import { Loader2, Mail, MessageSquare, Send } from "lucide-react";
+import { Filter, Loader2, Mail, MessageSquare, Send } from "lucide-react";
 
 type Customer = {
   id: string;
@@ -37,6 +37,15 @@ type MessageRow = {
 
 const SMS_CHAR_LIMIT = 320;
 
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function monthStartISO() {
+  const d = new Date();
+  return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10);
+}
+
 function customerDisplayName(c: Pick<Customer, "name" | "companyName" | "email" | "phone" | "id">) {
   return c.companyName || c.name || c.email || c.phone || c.id;
 }
@@ -60,9 +69,22 @@ export default function MessageCenterPage() {
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
 
+  const [fromDate, setFromDate] = useState(monthStartISO());
+  const [toDate, setToDate] = useState(todayISO());
+  const [appliedFrom, setAppliedFrom] = useState(monthStartISO());
+  const [appliedTo, setAppliedTo] = useState(todayISO());
+
   const selected = useMemo(
     () => customers.find((c) => c.id === customerId) || null,
     [customers, customerId]
+  );
+
+  const filteredMessages = useMemo(
+    () =>
+      messages.filter((m) =>
+        isDateInRange(m.createdAt, appliedFrom || undefined, appliedTo || undefined)
+      ),
+    [messages, appliedFrom, appliedTo]
   );
 
   const load = useCallback(async () => {
@@ -103,6 +125,24 @@ export default function MessageCenterPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  const applyDateFilter = () => {
+    if (fromDate && toDate && fromDate > toDate) {
+      toast.error("From date cannot be after To date");
+      return;
+    }
+    setAppliedFrom(fromDate);
+    setAppliedTo(toDate);
+  };
+
+  const resetDateFilter = () => {
+    const from = monthStartISO();
+    const to = todayISO();
+    setFromDate(from);
+    setToDate(to);
+    setAppliedFrom(from);
+    setAppliedTo(to);
+  };
 
   const resetForm = () => {
     setSubject("");
@@ -199,10 +239,10 @@ export default function MessageCenterPage() {
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
+    <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 max-w-full overflow-x-hidden">
       <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <MessageSquare className="w-7 h-7 text-blue-600" />
+        <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+          <MessageSquare className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600 shrink-0" />
           Message Center
         </h1>
         <p className="text-sm text-gray-500">
@@ -210,13 +250,13 @@ export default function MessageCenterPage() {
         </p>
       </div>
 
-      <form onSubmit={handleSend} className="border rounded-xl p-4 bg-white space-y-4">
-        <div className="grid md:grid-cols-2 gap-3">
+      <form onSubmit={handleSend} className="border rounded-xl p-3 sm:p-4 bg-white space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Customer</label>
             <select
               required
-              className="w-full border rounded-lg px-3 py-2 bg-white"
+              className="w-full border rounded-lg px-3 py-2 bg-white min-h-10"
               value={customerId}
               onChange={(e) => setCustomerId(e.target.value)}
             >
@@ -234,7 +274,7 @@ export default function MessageCenterPage() {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Channel</label>
             <select
-              className="w-full border rounded-lg px-3 py-2 bg-white"
+              className="w-full border rounded-lg px-3 py-2 bg-white min-h-10"
               value={channel}
               onChange={(e) => setChannel(e.target.value as "SMS" | "EMAIL" | "INTERNAL")}
             >
@@ -297,7 +337,43 @@ export default function MessageCenterPage() {
         </button>
       </form>
 
-      <div className="overflow-x-auto border rounded-xl bg-white">
+      <div className="border rounded-xl p-3 sm:p-4 bg-white grid grid-cols-2 sm:flex sm:flex-wrap items-end gap-3">
+        <div className="min-w-0">
+          <label className="block text-xs font-medium text-gray-600 mb-1">From</label>
+          <input
+            type="date"
+            value={fromDate}
+            onChange={(e) => setFromDate(e.target.value)}
+            className="w-full border rounded-lg px-2 sm:px-3 py-2 bg-white text-sm min-h-10"
+          />
+        </div>
+        <div className="min-w-0">
+          <label className="block text-xs font-medium text-gray-600 mb-1">To</label>
+          <input
+            type="date"
+            value={toDate}
+            onChange={(e) => setToDate(e.target.value)}
+            className="w-full border rounded-lg px-2 sm:px-3 py-2 bg-white text-sm min-h-10"
+          />
+        </div>
+        <button
+          type="button"
+          onClick={applyDateFilter}
+          className="col-span-2 sm:col-span-1 inline-flex items-center justify-center gap-2 bg-blue-600 text-white rounded-lg px-4 py-2 text-sm hover:bg-blue-700 min-h-10"
+        >
+          <Filter className="w-4 h-4" />
+          Apply filter
+        </button>
+        <button
+          type="button"
+          onClick={resetDateFilter}
+          className="col-span-2 sm:col-span-1 inline-flex items-center justify-center gap-2 border rounded-lg px-4 py-2 text-sm bg-white hover:bg-gray-50 min-h-10"
+        >
+          Reset
+        </button>
+      </div>
+
+      <div className="overflow-x-auto border rounded-xl bg-white hidden md:block">
         <table className="min-w-full text-sm">
           <thead className="bg-gray-50 text-left">
             <tr>
@@ -316,14 +392,14 @@ export default function MessageCenterPage() {
                   Loading...
                 </td>
               </tr>
-            ) : messages.length === 0 ? (
+            ) : filteredMessages.length === 0 ? (
               <tr>
                 <td className="p-3 text-gray-500" colSpan={6}>
-                  No messages yet
+                  No messages for this date range
                 </td>
               </tr>
             ) : (
-              messages.map((m, i) => {
+              filteredMessages.map((m, i) => {
                 const name = m.customer
                   ? customerDisplayName(m.customer)
                   : m.customerId || "—";
@@ -356,6 +432,49 @@ export default function MessageCenterPage() {
             )}
           </tbody>
         </table>
+      </div>
+
+      <div className="md:hidden space-y-3">
+        {loading ? (
+          <div className="border rounded-xl bg-white p-4 text-sm text-gray-500">Loading...</div>
+        ) : filteredMessages.length === 0 ? (
+          <div className="border rounded-xl bg-white p-4 text-sm text-gray-500">
+            No messages for this date range
+          </div>
+        ) : (
+          filteredMessages.map((m, i) => {
+            const name = m.customer
+              ? customerDisplayName(m.customer)
+              : m.customerId || "—";
+            return (
+              <div key={m.id} className="border rounded-xl bg-white p-4 space-y-2">
+                <div className="flex justify-between gap-2 items-start">
+                  <div className="min-w-0">
+                    <div className="text-xs text-gray-400 font-semibold">{i + 1}.</div>
+                    <div className="font-medium truncate">{name}</div>
+                    <div className="text-sm text-gray-700 truncate">{m.subject || "—"}</div>
+                  </div>
+                  <span
+                    className={`shrink-0 inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+                      m.status === "Sent"
+                        ? "bg-emerald-50 text-emerald-700"
+                        : m.status === "Failed"
+                          ? "bg-red-50 text-red-700"
+                          : "bg-gray-100 text-gray-700"
+                    }`}
+                  >
+                    {m.status}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 line-clamp-3">{m.body}</p>
+                <div className="text-xs text-gray-500 flex justify-between gap-2">
+                  <span>{m.channel}</span>
+                  <span>{formatDisplayDate(m.createdAt)}</span>
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
     </div>
   );

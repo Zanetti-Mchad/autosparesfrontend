@@ -272,19 +272,19 @@ export default function StockLevelsPage() {
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-2">
-        <div>
-          <h1 className="text-2xl font-bold">Stock Levels</h1>
+    <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 max-w-full overflow-x-hidden">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold">Stock Levels</h1>
           <p className="text-sm text-gray-500">
             Quantities by store — pick a store filter or view per-store rows
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-3 sm:flex flex-wrap gap-2 w-full sm:w-auto">
           <button
             type="button"
             onClick={handlePrint}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm border rounded-lg bg-white hover:bg-gray-50"
+            className="inline-flex items-center justify-center gap-1.5 px-2 sm:px-4 py-2 text-xs sm:text-sm border rounded-lg bg-white hover:bg-gray-50 min-h-10"
           >
             <Printer className="w-4 h-4" />
             Print
@@ -292,15 +292,15 @@ export default function StockLevelsPage() {
           <button
             type="button"
             onClick={handlePdf}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm border rounded-lg bg-white hover:bg-gray-50"
+            className="inline-flex items-center justify-center gap-1.5 px-2 sm:px-4 py-2 text-xs sm:text-sm border rounded-lg bg-white hover:bg-gray-50 min-h-10"
           >
             <Download className="w-4 h-4" />
-            Download PDF
+            PDF
           </button>
           <button
             type="button"
             onClick={load}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm border rounded-lg bg-white hover:bg-gray-50"
+            className="inline-flex items-center justify-center gap-1.5 px-2 sm:px-4 py-2 text-xs sm:text-sm border rounded-lg bg-white hover:bg-gray-50 min-h-10"
           >
             <RefreshCw className="w-4 h-4" />
             Refresh
@@ -448,7 +448,55 @@ export default function StockLevelsPage() {
         </div>
       )}
 
-      <div className="overflow-x-auto border rounded-xl bg-white">
+      <div className="md:hidden space-y-3">
+        {loading ? (
+          <div className="border rounded-xl bg-white p-4 text-sm text-gray-500">Loading...</div>
+        ) : filteredRows.length === 0 ? (
+          <div className="border rounded-xl bg-white p-4 text-sm text-gray-500">
+            No stock rows match these filters.
+          </div>
+        ) : (
+          filteredRows.map((r, i) => {
+            const label = storeLabel(r);
+            return (
+              <div
+                key={r.id || i}
+                className={`border rounded-xl bg-white p-4 space-y-2 ${r.isTotal ? "bg-slate-50" : ""}`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-xs text-gray-400 font-semibold">{i + 1}.</div>
+                    <div className="font-medium break-words">{r.name || "—"}</div>
+                    <div className="text-xs text-gray-500">{r.sku || "No SKU"}</div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="text-lg font-semibold tabular-nums">
+                      {Number(r.quantity || 0).toLocaleString()}
+                    </div>
+                    <span
+                      className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full border capitalize ${statusBadge(
+                        r.status
+                      )}`}
+                    >
+                      {r.status || "—"}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 text-xs text-gray-600">
+                  <span className="inline-flex font-semibold px-2 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
+                    {label}
+                  </span>
+                  <span className="px-2 py-1 rounded-full bg-gray-50 border">
+                    Min: {r.minStock == null ? "—" : Number(r.minStock).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      <div className="hidden md:block overflow-x-auto border rounded-xl bg-white">
         <table className="min-w-full text-sm">
           <thead className="bg-gray-50 text-left">
             <tr>
@@ -456,7 +504,7 @@ export default function StockLevelsPage() {
               <th className="p-3">Product</th>
               <th className="p-3">SKU</th>
               <th className="p-3">Qty</th>
-              <th className="p-3 min-w-[140px]">Store</th>
+              <th className="p-3">Store</th>
               <th className="p-3">Min</th>
               <th className="p-3">Status</th>
             </tr>

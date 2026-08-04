@@ -188,7 +188,7 @@ const CreateInventory = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto mt-10 p-8 glass rounded-2xl border border-border/50 shadow-medium">
+    <div className="max-w-4xl mx-auto mt-4 sm:mt-10 p-3 sm:p-4 md:p-8 glass rounded-2xl border border-border/50 shadow-medium min-w-0 overflow-x-hidden">
       <h2 className="text-2xl font-bold mb-2 text-center">Add Product / Stock Item</h2>
       <p className="text-center text-sm text-muted-foreground mb-8">Mwima Eliken · chicken cuts, packaging & materials</p>
       <form onSubmit={handleSubmit} className="space-y-8">

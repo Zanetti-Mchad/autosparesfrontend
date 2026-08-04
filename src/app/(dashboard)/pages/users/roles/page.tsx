@@ -149,21 +149,21 @@ export default function RolesPage() {
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
+    <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 max-w-full overflow-x-hidden">
       <div>
-        <h1 className="text-2xl font-bold">Roles & Permissions</h1>
+        <h1 className="text-xl sm:text-2xl font-bold">Roles & Permissions</h1>
         <p className="text-sm text-gray-500">
           Create roles and assign permissions from the available list
         </p>
       </div>
 
-      <form onSubmit={submit} className="border rounded-xl p-4 bg-white space-y-4">
-        <div className="grid md:grid-cols-2 gap-3">
+      <form onSubmit={submit} className="border rounded-xl p-3 sm:p-4 bg-white space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Role name</label>
             <input
               required
-              className="w-full border rounded-lg px-3 py-2"
+              className="w-full border rounded-lg px-3 py-2 min-h-10"
               placeholder="e.g. cashier"
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -172,7 +172,7 @@ export default function RolesPage() {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
             <select
-              className="w-full border rounded-lg px-3 py-2 bg-white"
+              className="w-full border rounded-lg px-3 py-2 bg-white min-h-10"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             >
@@ -295,7 +295,7 @@ export default function RolesPage() {
         </button>
       </form>
 
-      <div className="overflow-x-auto border rounded-xl bg-white">
+      <div className="overflow-x-auto border rounded-xl bg-white hidden md:block">
         <table className="min-w-full text-sm">
           <thead className="bg-gray-50 text-left">
             <tr>
@@ -348,6 +348,39 @@ export default function RolesPage() {
             )}
           </tbody>
         </table>
+      </div>
+
+      <div className="md:hidden space-y-3">
+        {loading ? (
+          <div className="border rounded-xl bg-white p-4 text-sm text-gray-500">Loading...</div>
+        ) : roles.length === 0 ? (
+          <div className="border rounded-xl bg-white p-4 text-sm text-gray-500">No roles found</div>
+        ) : (
+          roles.map((role, index) => {
+            const perms = rolePermissions(role);
+            return (
+              <div key={role.id} className="border rounded-xl bg-white p-4 space-y-2">
+                <div className="text-xs text-gray-400 font-semibold">{index + 1}.</div>
+                <div className="font-medium">{role.name}</div>
+                <div className="text-sm text-gray-600">{role.description || "—"}</div>
+                {perms.length === 0 ? (
+                  <span className="text-xs text-gray-400">No permissions</span>
+                ) : (
+                  <div className="flex flex-wrap gap-1">
+                    {perms.map((p) => (
+                      <span
+                        key={p}
+                        className="inline-block rounded-full bg-gray-100 text-gray-700 px-2 py-0.5 text-xs"
+                      >
+                        {p}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
       </div>
     </div>
   );

@@ -158,24 +158,24 @@ export default function ExpenseCategoriesPage() {
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
+    <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 max-w-full overflow-x-hidden">
       <div>
-        <h1 className="text-2xl font-bold">Expense Categories</h1>
+        <h1 className="text-xl sm:text-2xl font-bold">Expense Categories</h1>
         <p className="text-sm text-gray-500">
           Classify expenses — edit/delete only for admin or the creator
         </p>
       </div>
 
-      <form onSubmit={submit} className="grid md:grid-cols-3 gap-3 border rounded-xl p-4 bg-white">
+      <form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-3 gap-3 border rounded-xl p-3 sm:p-4 bg-white">
         <input
           required
-          className="border rounded-lg px-3 py-2 bg-white"
+          className="w-full border rounded-lg px-3 py-2 bg-white min-h-10"
           placeholder="Category name"
           value={form.name}
           onChange={(e) => setForm({ ...form, name: e.target.value })}
         />
         <input
-          className="border rounded-lg px-3 py-2 bg-white md:col-span-2"
+          className="w-full border rounded-lg px-3 py-2 bg-white md:col-span-2 min-h-10"
           placeholder="Description"
           value={form.description}
           onChange={(e) => setForm({ ...form, description: e.target.value })}
@@ -183,13 +183,13 @@ export default function ExpenseCategoriesPage() {
         <button
           type="submit"
           disabled={saving}
-          className="md:col-span-3 bg-blue-600 text-white rounded-lg py-2 disabled:opacity-50"
+          className="md:col-span-3 bg-blue-600 text-white rounded-lg py-2.5 min-h-10 disabled:opacity-50"
         >
           {saving && !editing ? "Saving…" : "Add Category"}
         </button>
       </form>
 
-      <div className="overflow-x-auto border rounded-xl bg-white">
+      <div className="overflow-x-auto border rounded-xl bg-white hidden md:block">
         <table className="min-w-full text-sm">
           <thead className="bg-gray-50 text-left">
             <tr>
@@ -247,6 +247,41 @@ export default function ExpenseCategoriesPage() {
             )}
           </tbody>
         </table>
+      </div>
+
+      <div className="md:hidden space-y-3">
+        {loading ? (
+          <div className="border rounded-xl bg-white p-4 text-sm text-gray-500">Loading...</div>
+        ) : rows.length === 0 ? (
+          <div className="border rounded-xl bg-white p-4 text-sm text-gray-500">No categories yet</div>
+        ) : (
+          rows.map((cat, i) => (
+            <div key={cat.id} className="border rounded-xl bg-white p-4 space-y-2">
+              <div className="text-xs text-gray-400 font-semibold">{i + 1}.</div>
+              <div className="font-medium">{cat.name}</div>
+              <div className="text-sm text-gray-600">{cat.description || "—"}</div>
+              <div className="text-xs text-gray-500">By {creatorLabel(cat)}</div>
+              {canManage(cat) && (
+                <div className="flex gap-3 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => openEdit(cat)}
+                    className="inline-flex items-center gap-1 text-blue-600 text-sm"
+                  >
+                    <Pencil className="w-3.5 h-3.5" /> Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => requestDelete(cat)}
+                    className="inline-flex items-center gap-1 text-red-600 text-sm"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" /> Delete
+                  </button>
+                </div>
+              )}
+            </div>
+          ))
+        )}
       </div>
 
       {editing && (

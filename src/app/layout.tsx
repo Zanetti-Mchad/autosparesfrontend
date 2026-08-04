@@ -755,7 +755,7 @@ export default function RootLayout({
               </nav>
             </aside>
 
-            <main className="flex-1 p-4 md:p-8">
+            <main className="flex-1 p-3 sm:p-4 md:p-8 min-w-0 overflow-x-hidden">
             {children}
             </main>
           </div>

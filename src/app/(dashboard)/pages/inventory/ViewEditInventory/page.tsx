@@ -371,7 +371,7 @@ const ViewEditInventory = () => {
 
   if (isLoading) {
     return (
-      <div className="max-w-7xl mx-auto mt-10 p-8 glass rounded-2xl border border-border/50 shadow-medium">
+      <div className="max-w-7xl mx-auto mt-4 sm:mt-10 p-3 sm:p-4 md:p-8 glass rounded-2xl border border-border/50 shadow-medium min-w-0 overflow-x-hidden">
         <div className="flex items-center justify-center py-12">
           <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
           <span className="ml-3 text-muted-foreground">Loading inventory...</span>
@@ -381,23 +381,23 @@ const ViewEditInventory = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto mt-10 p-8 glass rounded-2xl border border-border/50 shadow-medium relative">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-bold">View & Edit Inventory</h2>
-        <div className="flex gap-3">
+    <div className="max-w-7xl mx-auto mt-4 sm:mt-10 p-3 sm:p-4 md:p-8 glass rounded-2xl border border-gray-300 shadow-medium relative min-w-0 overflow-x-hidden">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6">
+        <h2 className="text-lg sm:text-xl font-bold">View & Edit Inventory</h2>
+        <div className="flex gap-2 sm:gap-3">
           <button 
             onClick={handlePrint}
-            className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-xl hover:bg-primary/20 transition-colors"
+            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white text-primary rounded-xl border border-gray-300 hover:bg-gray-50 transition-colors"
           >
             <Printer className="w-4 h-4" />
-            <span>Print</span>
+            <span className="hidden xs:inline sm:inline">Print</span>
           </button>
           <button 
             onClick={exportToExcel}
-            className="flex items-center gap-2 px-4 py-2 bg-green-500/10 text-green-600 rounded-xl hover:bg-green-500/20 transition-colors"
+            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white text-green-600 rounded-xl border border-gray-300 hover:bg-gray-50 transition-colors"
           >
             <Download className="w-4 h-4" />
-            <span>Export Excel</span>
+            <span>Excel</span>
           </button>
         </div>
       </div>
@@ -408,15 +408,15 @@ const ViewEditInventory = () => {
         </div>
       )}
       {success && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-green-100 border border-green-300 text-green-800 px-6 py-3 rounded-xl shadow-lg flex items-center animate-fade-in-out transition-all duration-500" style={{ minWidth: 320 }}>
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-green-100 border border-green-300 text-green-800 px-4 sm:px-6 py-3 rounded-xl shadow-lg flex items-center animate-fade-in-out transition-all duration-500 w-[calc(100%-2rem)] max-w-md">
           {success}
         </div>
       )}
       
       {/* Modal for editing */}
       {editingId !== null && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" style={{zIndex: 9999}}>
-          <div className="bg-white dark:bg-zinc-900 rounded-2xl p-8 w-full max-w-2xl shadow-2xl border border-gray-200 dark:border-gray-700 relative">
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" style={{zIndex: 9999}}>
+          <div className="bg-white dark:bg-zinc-900 rounded-t-2xl sm:rounded-2xl p-4 sm:p-8 w-full max-w-2xl shadow-2xl border border-gray-200 dark:border-gray-700 relative max-h-[92vh] overflow-y-auto">
             <button 
               onClick={() => setEditingId(null)} 
               className="absolute top-4 right-4 text-muted-foreground hover:text-red-500 transition-colors"
@@ -553,18 +553,18 @@ const ViewEditInventory = () => {
                   />
                 </div>
               </div>
-              <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700 mt-6" style={{minHeight: '60px'}}>
+              <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 pt-4 border-t border-gray-200 dark:border-gray-700 mt-6">
                 <button 
                   type="button" 
                   onClick={() => setEditingId(null)} 
-                  className="flex items-center gap-2 px-6 py-2 bg-gray-500 text-white rounded-xl font-medium hover:bg-gray-600 transition-colors"
+                  className="flex items-center justify-center gap-2 w-full sm:w-auto px-6 py-2.5 bg-gray-500 text-white rounded-xl font-medium hover:bg-gray-600 transition-colors"
                 >
                   <X className="w-4 h-4" />
                   Cancel
                 </button>
                 <button 
                   type="submit" 
-                  className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 transition-colors"
+                  className="flex items-center justify-center gap-2 w-full sm:w-auto px-6 py-2.5 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 transition-colors"
                 >
                   <Save className="w-4 h-4" />
                   Save Changes
@@ -574,54 +574,110 @@ const ViewEditInventory = () => {
           </div>
         </div>
       )}
-      <table ref={tableRef} className="w-full border-separate border-spacing-y-2">
+
+      {/* Mobile cards */}
+      <div className="md:hidden space-y-3">
+        {Array.isArray(inventory) && inventory.length > 0 ? inventory.map((item, index) => (
+          <div key={item.id} className="bg-white dark:bg-black/30 border border-gray-300 rounded-xl p-4 space-y-3">
+            <div className="flex gap-3">
+              {item.photo ? (
+                <Image src={item.photo} alt={item.name} width={56} height={56} className="w-14 h-14 object-cover rounded-xl border border-border/30 shrink-0" />
+              ) : (
+                <div className="w-14 h-14 bg-gradient-to-br from-gray-200 to-gray-300 rounded-xl flex items-center justify-center text-gray-400 border border-border/30 shrink-0">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2z" /><circle cx="12" cy="12" r="3" /><path d="M16.5 7.5l-7 7" /></svg>
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <div className="text-xs text-muted-foreground font-semibold">{index + 1}.</div>
+                <div className="font-medium text-foreground truncate">{item.name}</div>
+                <div className="text-sm text-muted-foreground">UGX {Number(item.price).toLocaleString()}</div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+              <div>Category: {typeof item.category === 'object' ? item.category.name : item.category}</div>
+              <div>Brand: {item.brand?.name || '—'}</div>
+              <div>Size: {item.size || '—'}</div>
+              <div>Unit: {item.unit || '—'}</div>
+              <div>Stock: {item.quantity || item.stock}</div>
+            </div>
+            {item.description ? (
+              <p className="text-xs text-muted-foreground line-clamp-2">{item.description}</p>
+            ) : null}
+            <div className="flex gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => startEdit(item)}
+                className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-primary bg-white border border-gray-300 rounded-lg text-sm"
+              >
+                <Edit className="w-4 h-4" />
+                Edit
+              </button>
+              <button
+                type="button"
+                onClick={() => requestDelete(item)}
+                className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-red-600 bg-white border border-red-200 rounded-lg text-sm"
+              >
+                <Trash2 className="w-4 h-4" />
+                Delete
+              </button>
+            </div>
+          </div>
+        )) : (
+          <div className="p-6 text-center text-muted-foreground text-sm border border-gray-300 rounded-xl bg-white">
+            {isLoading ? 'Loading inventory...' : 'No inventory items found'}
+          </div>
+        )}
+      </div>
+
+      <div className="hidden md:block overflow-x-auto border border-gray-300 rounded-xl bg-white">
+      <table ref={tableRef} className="w-full border-collapse">
         <thead>
-          <tr className="bg-secondary/40">
-            <th className="p-2 text-center rounded-l-xl">#</th>
-            <th className="p-2 text-center">Photo</th>
-            <th className="p-2 text-left">Name</th>
-            <th className="p-2 text-left">Price</th>
-            <th className="p-2 text-left">Category</th>
-            <th className="p-2 text-left">Brand</th>
-            <th className="p-2 text-left">Size</th>
-            <th className="p-2 text-left">Unit</th>
-            <th className="p-2 text-left">Stock</th>
-            <th className="p-2 text-left">Description</th>
-            <th className="p-2 text-center rounded-r-xl">Actions</th>
+          <tr className="bg-secondary/40 border-b border-gray-300">
+            <th className="p-3 text-center">#</th>
+            <th className="p-3 text-center">Photo</th>
+            <th className="p-3 text-left">Name</th>
+            <th className="p-3 text-left">Price</th>
+            <th className="p-3 text-left">Category</th>
+            <th className="p-3 text-left">Brand</th>
+            <th className="p-3 text-left">Size</th>
+            <th className="p-3 text-left">Unit</th>
+            <th className="p-3 text-left">Stock</th>
+            <th className="p-3 text-left">Description</th>
+            <th className="p-3 text-center">Actions</th>
           </tr>
         </thead>
         <tbody>
           {Array.isArray(inventory) && inventory.length > 0 ? inventory.map((item, index) => (
-            <tr key={item.id} className="bg-white/80 dark:bg-black/30 shadow rounded-xl">
-              <td className="p-2 text-center font-semibold text-muted-foreground">{index + 1}</td>
-              <td className="p-2 text-center">
+            <tr key={item.id} className="border-b border-gray-200 last:border-b-0 hover:bg-gray-50/80">
+              <td className="p-3 text-center font-semibold text-muted-foreground">{index + 1}</td>
+              <td className="p-3 text-center">
                 {item.photo ? (
-                  <Image src={item.photo} alt={item.name} width={48} height={48} className="w-12 h-12 object-cover rounded-xl border border-border/30 shadow" />
+                  <Image src={item.photo} alt={item.name} width={48} height={48} className="w-12 h-12 object-cover rounded-xl border border-gray-300 shadow" />
                 ) : (
-                  <div className="w-12 h-12 bg-gradient-to-br from-gray-200 to-gray-300 rounded-xl flex items-center justify-center text-gray-400 border border-border/30 mx-auto">
+                  <div className="w-12 h-12 bg-gradient-to-br from-gray-200 to-gray-300 rounded-xl flex items-center justify-center text-gray-400 border border-gray-300 mx-auto">
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2z" /><circle cx="12" cy="12" r="3" /><path d="M16.5 7.5l-7 7" /></svg>
                   </div>
                 )}
               </td>
               <>
-                <td className="p-2 text-left text-foreground font-medium text-base">{item.name}</td>
-                <td className="p-2 text-left text-muted-foreground text-sm">UGX {item.price}</td>
-                <td className="p-2 text-left text-muted-foreground text-sm">
+                <td className="p-3 text-left text-foreground font-medium text-base">{item.name}</td>
+                <td className="p-3 text-left text-muted-foreground text-sm">UGX {item.price}</td>
+                <td className="p-3 text-left text-muted-foreground text-sm">
                   {typeof item.category === 'object' ? item.category.name : item.category}
                 </td>
-                <td className="p-2 text-left text-muted-foreground text-sm">
+                <td className="p-3 text-left text-muted-foreground text-sm">
                   {item.brand?.name || '—'}
                 </td>
-                <td className="p-2 text-left text-muted-foreground text-sm">{item.size || '-'}</td>
-                <td className="p-2 text-left text-muted-foreground text-sm">{item.unit || '-'}</td>
-                <td className="p-2 text-left text-muted-foreground text-sm">{item.quantity || item.stock}</td>
-                <td className="p-2 text-left text-muted-foreground text-xs">{item.description}</td>
-                <td className="p-2 text-center">
+                <td className="p-3 text-left text-muted-foreground text-sm">{item.size || '-'}</td>
+                <td className="p-3 text-left text-muted-foreground text-sm">{item.unit || '-'}</td>
+                <td className="p-3 text-left text-muted-foreground text-sm">{item.quantity || item.stock}</td>
+                <td className="p-3 text-left text-muted-foreground text-xs">{item.description}</td>
+                <td className="p-3 text-center">
                   <div className="flex items-center justify-center gap-2">
                     <button
                       type="button"
                       onClick={() => startEdit(item)}
-                      className="flex items-center gap-1 px-3 py-1 text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                      className="flex items-center gap-1 px-3 py-1 text-primary border border-gray-300 rounded-lg hover:bg-primary/10 transition-colors"
                     >
                       <Edit className="w-4 h-4" />
                       Edit
@@ -629,7 +685,7 @@ const ViewEditInventory = () => {
                     <button
                       type="button"
                       onClick={() => requestDelete(item)}
-                      className="flex items-center gap-1 px-3 py-1 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      className="flex items-center gap-1 px-3 py-1 text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />
                       Delete
@@ -647,6 +703,7 @@ const ViewEditInventory = () => {
           )}
         </tbody>
       </table>
+      </div>
 
       <Dialog open={!!deleting} onOpenChange={(open) => !open && !deleteLoading && setDeleting(null)}>
         <DialogContent>

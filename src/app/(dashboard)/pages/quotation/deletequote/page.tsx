@@ -298,14 +298,14 @@ const DeleteQuotes = () => {
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-7xl">
+    <div className="container mx-auto p-3 sm:p-4 md:p-6 max-w-7xl overflow-x-hidden">
       {/* Header */}
-      <div className="mb-8">
+      <div className="mb-6 sm:mb-8">
         <div className="flex items-center gap-3 mb-2">
-          <Trash2 className="h-8 w-8 text-red-500" />
-          <h1 className="text-3xl font-bold">Delete Quotes</h1>
+          <Trash2 className="h-6 w-6 sm:h-8 sm:w-8 text-red-500 shrink-0" />
+          <h1 className="text-2xl sm:text-3xl font-bold">Delete Quotes</h1>
         </div>
-        <p className="text-muted-foreground">
+        <p className="text-muted-foreground text-sm sm:text-base">
           Select and delete quotes. Only Draft and Expired quotes can be deleted.
         </p>
       </div>
@@ -321,7 +321,7 @@ const DeleteQuotes = () => {
 
       {/* Filters */}
       <Card className="mb-6">
-        <CardContent className="p-6">
+        <CardContent className="p-3 sm:p-6">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
               <div className="relative">
@@ -357,10 +357,10 @@ const DeleteQuotes = () => {
       {selectedQuotes.length > 0 && (
         <Card className="mb-6 border-red-200 bg-red-50">
           <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Shield className="h-5 w-5 text-red-600" />
-                <span className="font-medium text-red-800">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2 min-w-0">
+                <Shield className="h-5 w-5 text-red-600 shrink-0" />
+                <span className="font-medium text-red-800 text-sm sm:text-base">
                   {selectedQuotes.length} quote(s) selected for deletion
                 </span>
               </div>
@@ -368,6 +368,7 @@ const DeleteQuotes = () => {
                 variant="destructive" 
                 onClick={handleDeleteQuotes}
                 disabled={isDeleting}
+                className="w-full sm:w-auto"
               >
                 <Trash2 className="h-4 w-4 mr-2" />
                 Delete Selected
@@ -398,7 +399,8 @@ const DeleteQuotes = () => {
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+            <div className="overflow-x-auto hidden md:block">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -527,6 +529,70 @@ const DeleteQuotes = () => {
                 </TableBody>
               </Table>
             </div>
+
+            <div className="md:hidden space-y-3">
+              {filteredQuotes.map((quote, index) => {
+                const daysUntilExpiry = getDaysUntilExpiry(quote.createdAt, quote.validUntil);
+                const canDelete = canDeleteQuote(quote);
+                const isSelected = selectedQuotes.includes(quote.id);
+                return (
+                  <div
+                    key={quote.id}
+                    className={`border rounded-xl p-4 space-y-3 ${!canDelete ? 'opacity-50' : ''}`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={(checked) => handleQuoteSelect(quote.id, checked as boolean)}
+                        disabled={!canDelete}
+                        className="mt-1"
+                      />
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <div className="text-xs text-muted-foreground font-semibold">{index + 1}.</div>
+                        <div className="font-medium break-all">{quote.quoteNumber}</div>
+                        <div className="text-sm truncate">{quote.customer.name}</div>
+                        <div className="font-medium text-sm">UGX {quote.total.toLocaleString()}</div>
+                      </div>
+                      <Badge className={getStatusColor(quote.status)}>
+                        {quote.status}
+                      </Badge>
+                    </div>
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground pl-8">
+                      <span>{formatDate(quote.createdAt)}</span>
+                      <span className={
+                        daysUntilExpiry < 0 ? 'text-red-600' :
+                        daysUntilExpiry < 3 ? 'text-orange-600' :
+                        'text-green-600'
+                      }>
+                        {daysUntilExpiry < 0 ? 'Expired' : `${daysUntilExpiry} days left`}
+                      </span>
+                    </div>
+                    <div className="flex gap-2 pl-8">
+                      <Button variant="outline" size="sm" className="flex-1" onClick={() => handleViewQuote(quote)}>
+                        <Eye className="h-4 w-4 mr-1" />
+                        View
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="flex-1"
+                        disabled={!canDelete}
+                        onClick={() => {
+                          if (canDelete) {
+                            setSelectedQuotes([quote.id]);
+                            handleDeleteQuotes();
+                          }
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        Delete
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            </>
           )}
         </CardContent>
       </Card>

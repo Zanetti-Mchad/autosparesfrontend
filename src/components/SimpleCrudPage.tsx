@@ -184,19 +184,24 @@ export default function SimpleCrudPage({
     }
   };
 
+  const fieldClass = (f: FieldDef, extra = "") =>
+    `w-full min-w-0 border rounded-lg px-3 py-2 bg-white min-h-10 ${
+      f.colSpan ? `sm:col-span-2 md:col-span-${f.colSpan}` : ""
+    } ${extra}`.trim();
+
   return (
-    <div className={`p-4 md:p-6 space-y-6 ${containerClassName}`.trim()}>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">{title}</h1>
+    <div className={`p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 max-w-full overflow-x-hidden ${containerClassName}`.trim()}>
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold">{title}</h1>
           {description && <p className="text-sm text-gray-500">{description}</p>}
         </div>
         {enableExport && (
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-2 sm:flex gap-2 w-full sm:w-auto">
             <button
               type="button"
               onClick={handlePrint}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm border rounded-lg bg-white hover:bg-gray-50"
+              className="inline-flex items-center justify-center gap-2 px-3 py-2 text-sm border rounded-lg bg-white hover:bg-gray-50 min-h-10"
             >
               <Printer className="w-4 h-4" />
               Print
@@ -204,21 +209,21 @@ export default function SimpleCrudPage({
             <button
               type="button"
               onClick={handlePdf}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm border rounded-lg bg-white hover:bg-gray-50"
+              className="inline-flex items-center justify-center gap-2 px-3 py-2 text-sm border rounded-lg bg-white hover:bg-gray-50 min-h-10"
             >
               <Download className="w-4 h-4" />
-              Download PDF
+              PDF
             </button>
           </div>
         )}
       </div>
 
       {!listOnly && (
-        <form onSubmit={submit} className="grid md:grid-cols-3 gap-3 border rounded-xl p-4 bg-white">
+        <form onSubmit={submit} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 border rounded-xl p-3 sm:p-4 bg-white">
           {fields.map((f) => {
             const common = {
               required: f.required,
-              className: `border rounded-lg px-3 py-2 ${f.colSpan ? `md:col-span-${f.colSpan}` : ""}`,
+              className: fieldClass(f),
               value: form[f.key] ?? "",
               onChange: (
                 e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -243,19 +248,41 @@ export default function SimpleCrudPage({
                   key={f.key}
                   {...common}
                   rows={2}
-                  className={`${common.className} md:col-span-3`}
+                  className={fieldClass(f, "sm:col-span-2 md:col-span-3")}
                 />
               );
             }
             return <input key={f.key} {...common} type={f.type || "text"} />;
           })}
-          <button type="submit" className="md:col-span-3 bg-blue-600 text-white rounded-lg py-2">
+          <button type="submit" className="sm:col-span-2 md:col-span-3 bg-blue-600 text-white rounded-lg py-2.5 min-h-10">
             {createLabel}
           </button>
         </form>
       )}
 
-      <div className="overflow-x-auto border rounded-xl bg-white">
+      {/* Mobile cards */}
+      <div className="md:hidden space-y-3">
+        {loading ? (
+          <div className="border rounded-xl bg-white p-4 text-sm text-gray-500">Loading...</div>
+        ) : rows.length === 0 ? (
+          <div className="border rounded-xl bg-white p-4 text-sm text-gray-500">No records found</div>
+        ) : (
+          rows.map((row, i) => (
+            <div key={row.id || i} className="border rounded-xl bg-white p-4 space-y-2">
+              <div className="text-xs font-semibold text-gray-400">{i + 1}.</div>
+              {columns.map((c) => (
+                <div key={c.key} className="flex justify-between gap-3 text-sm">
+                  <span className="text-gray-500 shrink-0">{c.label}</span>
+                  <span className="text-right break-words min-w-0">{renderCell(row, c)}</span>
+                </div>
+              ))}
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Desktop table */}
+      <div className="hidden md:block overflow-x-auto border rounded-xl bg-white">
         <table className="min-w-full text-sm">
           <thead className="bg-gray-50 text-left">
             <tr>

@@ -222,18 +222,18 @@ export default function DeliveriesPage() {
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
+    <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 max-w-full overflow-x-hidden">
       <div>
-        <h1 className="text-2xl font-bold">Deliveries</h1>
+        <h1 className="text-xl sm:text-2xl font-bold">Deliveries</h1>
         <p className="text-sm text-gray-500">
           Routes, drivers, delivery notes &amp; customer signatures. Orders marked Packed / Out for
           delivery / Delivered in the pipeline also appear here.
         </p>
       </div>
 
-      <form onSubmit={create} className="grid md:grid-cols-3 gap-3 border rounded-xl p-4 bg-white">
+      <form onSubmit={create} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 border rounded-xl p-3 sm:p-4 bg-white">
         <select
-          className="border rounded-lg px-3 py-2"
+          className="w-full border rounded-lg px-3 py-2 min-h-10"
           value={form.orderId}
           onChange={(e) => setForm({ ...form, orderId: e.target.value })}
         >
@@ -245,7 +245,7 @@ export default function DeliveriesPage() {
           ))}
         </select>
         <select
-          className="border rounded-lg px-3 py-2"
+          className="w-full border rounded-lg px-3 py-2 min-h-10"
           value={form.route}
           onChange={(e) => setForm({ ...form, route: e.target.value })}
         >
@@ -256,30 +256,30 @@ export default function DeliveriesPage() {
           ))}
         </select>
         <input
-          className="border rounded-lg px-3 py-2"
+          className="w-full border rounded-lg px-3 py-2 min-h-10"
           placeholder="Driver name"
           value={form.driverName}
           onChange={(e) => setForm({ ...form, driverName: e.target.value })}
         />
         <input
-          className="border rounded-lg px-3 py-2"
+          className="w-full border rounded-lg px-3 py-2 min-h-10"
           placeholder="Driver phone"
           value={form.driverPhone}
           onChange={(e) => setForm({ ...form, driverPhone: e.target.value })}
         />
         <input
-          className="border rounded-lg px-3 py-2"
+          className="w-full border rounded-lg px-3 py-2 min-h-10"
           placeholder="Transport cost"
           value={form.transportCost}
           onChange={(e) => setForm({ ...form, transportCost: e.target.value })}
         />
         <input
-          className="border rounded-lg px-3 py-2"
+          className="w-full border rounded-lg px-3 py-2 min-h-10"
           placeholder="Notes"
           value={form.notes}
           onChange={(e) => setForm({ ...form, notes: e.target.value })}
         />
-        <button type="submit" className="md:col-span-3 bg-blue-600 text-white rounded-lg py-2">
+        <button type="submit" className="sm:col-span-2 md:col-span-3 bg-blue-600 text-white rounded-lg py-2.5 min-h-10">
           Create delivery note
         </button>
       </form>
@@ -314,7 +314,7 @@ export default function DeliveriesPage() {
               ))}
             </select>
           </div>
-          <div className="relative flex-1 min-w-[180px]">
+          <div className="relative flex-1 min-w-0 w-full sm:min-w-[180px]">
             <label className="block text-xs font-medium text-gray-600 mb-1">Search</label>
             <Search className="absolute left-3 bottom-2.5 w-4 h-4 text-gray-400 pointer-events-none" />
             <input

@@ -237,19 +237,19 @@ export default function SimpleReportPage({
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-2">
-        <div>
-          <h1 className="text-2xl font-bold">{title}</h1>
+    <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 max-w-full overflow-x-hidden">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold">{title}</h1>
           {description && <p className="text-sm text-gray-500">{description}</p>}
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-2 sm:flex flex-wrap gap-2 w-full sm:w-auto">
           {enableExport && (
             <>
               <button
                 type="button"
                 onClick={handlePrint}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm border rounded-lg bg-white hover:bg-gray-50"
+                className="inline-flex items-center justify-center gap-2 px-3 py-2 text-sm border rounded-lg bg-white hover:bg-gray-50 min-h-10"
               >
                 <Printer className="w-4 h-4" />
                 Print
@@ -257,17 +257,17 @@ export default function SimpleReportPage({
               <button
                 type="button"
                 onClick={handlePdf}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm border rounded-lg bg-white hover:bg-gray-50"
+                className="inline-flex items-center justify-center gap-2 px-3 py-2 text-sm border rounded-lg bg-white hover:bg-gray-50 min-h-10"
               >
                 <Download className="w-4 h-4" />
-                Download PDF
+                PDF
               </button>
             </>
           )}
           <button
             type="button"
             onClick={load}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm border rounded-lg bg-white hover:bg-gray-50"
+            className="col-span-2 sm:col-span-1 inline-flex items-center justify-center gap-2 px-3 py-2 text-sm border rounded-lg bg-white hover:bg-gray-50 min-h-10"
           >
             <RefreshCw className="w-4 h-4" />
             Refresh
@@ -276,43 +276,41 @@ export default function SimpleReportPage({
       </div>
 
       {dateParam && (
-        <div className="border rounded-xl p-4 bg-white flex flex-wrap items-end gap-3">
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Date</label>
-            <input
-              type="date"
-              value={dateValue}
-              onChange={(e) => setDateValue(e.target.value)}
-              className="border rounded-lg px-3 py-2 bg-white text-sm"
-            />
-          </div>
+        <div className="border rounded-xl p-3 sm:p-4 bg-white">
+          <label className="block text-xs font-medium text-gray-600 mb-1">Date</label>
+          <input
+            type="date"
+            value={dateValue}
+            onChange={(e) => setDateValue(e.target.value)}
+            className="w-full sm:w-auto border rounded-lg px-3 py-2 bg-white text-sm min-h-10"
+          />
         </div>
       )}
 
       {enableDateRange && (
-        <div className="border rounded-xl p-4 bg-white flex flex-wrap items-end gap-3">
-          <div>
+        <div className="border rounded-xl p-3 sm:p-4 bg-white grid grid-cols-2 sm:flex sm:flex-wrap items-end gap-3">
+          <div className="min-w-0">
             <label className="block text-xs font-medium text-gray-600 mb-1">From</label>
             <input
               type="date"
               value={fromDate}
               onChange={(e) => setFromDate(e.target.value)}
-              className="border rounded-lg px-3 py-2 bg-white text-sm"
+              className="w-full border rounded-lg px-2 sm:px-3 py-2 bg-white text-sm min-h-10"
             />
           </div>
-          <div>
+          <div className="min-w-0">
             <label className="block text-xs font-medium text-gray-600 mb-1">To</label>
             <input
               type="date"
               value={toDate}
               onChange={(e) => setToDate(e.target.value)}
-              className="border rounded-lg px-3 py-2 bg-white text-sm"
+              className="w-full border rounded-lg px-2 sm:px-3 py-2 bg-white text-sm min-h-10"
             />
           </div>
           <button
             type="button"
             onClick={applyDateRange}
-            className="inline-flex items-center gap-2 bg-blue-600 text-white rounded-lg px-4 py-2 text-sm hover:bg-blue-700"
+            className="col-span-2 sm:col-span-1 inline-flex items-center justify-center gap-2 bg-blue-600 text-white rounded-lg px-4 py-2 text-sm hover:bg-blue-700 min-h-10"
           >
             <Filter className="w-4 h-4" />
             Apply filter
@@ -321,11 +319,11 @@ export default function SimpleReportPage({
       )}
 
       {summaryKeys && summaryKeys.length > 0 && payload && (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {summaryKeys.map((s) => (
-            <div key={s.key} className="border rounded-xl p-4 bg-white">
+            <div key={s.key} className="border rounded-xl p-3 sm:p-4 bg-white min-w-0">
               <div className="text-xs text-gray-500">{s.label}</div>
-              <div className="text-lg font-semibold mt-1">
+              <div className="text-base sm:text-lg font-semibold mt-1 break-words">
                 {formatVal(resolveSummaryValue(s), s.format)}
               </div>
             </div>
@@ -333,7 +331,33 @@ export default function SimpleReportPage({
         </div>
       )}
 
-      <div className="overflow-x-auto border rounded-xl bg-white">
+      {/* Mobile cards */}
+      <div className="md:hidden space-y-3">
+        {loading ? (
+          <div className="border rounded-xl bg-white p-4 text-sm text-gray-500">Loading...</div>
+        ) : rows.length === 0 ? (
+          <div className="border rounded-xl bg-white p-4 text-sm text-gray-500">No data for this report</div>
+        ) : (
+          rows.map((row, i) => (
+            <div key={row.id || i} className="border rounded-xl bg-white p-4 space-y-2">
+              <div className="text-xs font-semibold text-gray-400">{i + 1}.</div>
+              {autoColumns.map((c) => (
+                <div key={c.key} className="flex justify-between gap-3 text-sm">
+                  <span className="text-gray-500 shrink-0">{c.label}</span>
+                  <span className="text-right break-words min-w-0">
+                    {c.render
+                      ? c.render(row)
+                      : formatVal(row[c.key], typeof row[c.key] === "number" ? "number" : "text")}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Desktop table */}
+      <div className="hidden md:block overflow-x-auto border rounded-xl bg-white">
         <table className="min-w-full text-sm">
           <thead className="bg-gray-50 text-left">
             <tr>
