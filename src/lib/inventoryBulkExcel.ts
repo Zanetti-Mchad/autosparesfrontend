@@ -113,12 +113,11 @@ function cellNum(v: unknown): number | null {
 
 /** Download blank template with Instructions sheet and example rows. */
 export function downloadInventoryBulkTemplate() {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const XLSX = require("xlsx") as typeof import("xlsx");
 
   const wb = XLSX.utils.book_new();
 
-  const dataSheet = XLSX.utils.aoa_to_sheet([HEADERS, ...EXAMPLE_ROWS]);
+  const dataSheet = XLSX.utils.aoa_to_sheet([[...HEADERS], ...EXAMPLE_ROWS]);
   dataSheet["!cols"] = [
     { wch: 22 },
     { wch: 14 },
@@ -172,7 +171,6 @@ export function downloadInventoryBulkTemplate() {
 
 /** Parse an uploaded .xlsx / .xls / .csv into inventory create rows. */
 export async function parseInventoryBulkExcel(file: File): Promise<InventoryBulkParseResult> {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const XLSX = require("xlsx") as typeof import("xlsx");
 
   const buffer = await file.arrayBuffer();

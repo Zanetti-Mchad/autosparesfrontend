@@ -61,12 +61,11 @@ function cellNum(v: unknown): number | null {
 
 /** Download a blank template with an Instructions sheet and example rows. */
 export function downloadStockBulkTemplate() {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const XLSX = require("xlsx") as typeof import("xlsx");
 
   const wb = XLSX.utils.book_new();
 
-  const dataSheet = XLSX.utils.aoa_to_sheet([HEADERS, ...EXAMPLE_ROWS]);
+  const dataSheet = XLSX.utils.aoa_to_sheet([[...HEADERS], ...EXAMPLE_ROWS]);
   dataSheet["!cols"] = [
     { wch: 14 },
     { wch: 28 },
@@ -107,7 +106,6 @@ export function downloadStockBulkTemplate() {
 
 /** Parse an uploaded .xlsx / .xls / .csv into stock bulk rows. */
 export async function parseStockBulkExcel(file: File): Promise<StockBulkParseResult> {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const XLSX = require("xlsx") as typeof import("xlsx");
 
   const buffer = await file.arrayBuffer();
