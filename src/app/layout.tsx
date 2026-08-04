@@ -573,22 +573,46 @@ export default function RootLayout({
                   </button>
 
                   {showAlertsPanel && (
-                    <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-xl border border-gray-200 shadow-xl z-50 overflow-hidden">
-                      <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between bg-gray-50">
-                        <div>
+                    <>
+                      {/* Mobile backdrop — tap outside to close */}
+                      <button
+                        type="button"
+                        aria-label="Close alerts"
+                        className="fixed inset-0 z-40 bg-black/20 sm:hidden"
+                        onClick={() => setShowAlertsPanel(false)}
+                      />
+                      <div
+                        className="
+                          z-50 overflow-hidden bg-white rounded-xl border border-gray-200 shadow-xl
+                          fixed left-3 right-3 top-[4.75rem] w-auto max-h-[min(24rem,calc(100dvh-5.5rem))]
+                          sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-96 sm:max-h-none
+                        "
+                      >
+                      <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between bg-gray-50 gap-2">
+                        <div className="min-w-0">
                           <p className="text-sm font-semibold text-gray-800">Stock alerts</p>
                           <p className="text-[11px] text-gray-500">Clears only after you restock</p>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => fetchNavAlerts()}
-                          className="text-xs text-blue-600 hover:underline"
-                        >
-                          Refresh
-                        </button>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => fetchNavAlerts()}
+                            className="text-xs text-blue-600 hover:underline"
+                          >
+                            Refresh
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setShowAlertsPanel(false)}
+                            className="sm:hidden p-1.5 rounded-lg text-gray-500 hover:bg-gray-200/80"
+                            aria-label="Close"
+                          >
+                            <span className="block w-4 h-4 text-center leading-4 text-base font-medium">×</span>
+                          </button>
+                        </div>
                       </div>
 
-                      <div className="max-h-80 overflow-y-auto">
+                      <div className="max-h-[min(18rem,calc(100dvh-10rem))] sm:max-h-80 overflow-y-auto overscroll-contain">
                         {alertsLoading && !navAlerts.length ? (
                           <p className="p-4 text-sm text-gray-500">Loading alerts…</p>
                         ) : !navAlerts.length ? (
@@ -624,7 +648,7 @@ export default function RootLayout({
                                       <p className="text-[10px] uppercase tracking-wide font-semibold text-gray-500">
                                         {alertTypeLabel(alert.type)}
                                       </p>
-                                      <p className="text-sm text-gray-800 font-medium leading-snug">
+                                      <p className="text-sm text-gray-800 font-medium leading-snug break-words">
                                         {alert.message}
                                       </p>
                                       {alert.meta?.minStock != null && (
@@ -651,7 +675,8 @@ export default function RootLayout({
                           View all alerts →
                         </Link>
                       </div>
-                    </div>
+                      </div>
+                    </>
                   )}
                 </div>
                 

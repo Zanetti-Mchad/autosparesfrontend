@@ -1,5 +1,6 @@
 "use client";
 import { formatDisplayDate } from '@/lib/formatDate';
+import { fetchApi } from '@/lib/apiConfig';
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -83,7 +84,7 @@ const getUrgencyColor = (urgency: string) => {
   }
 };
 
-const StoreMangerPage = () => {
+const StoreManagerPage = () => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [usingMockData, setUsingMockData] = useState(false);
@@ -126,94 +127,58 @@ const StoreMangerPage = () => {
   // Fetch dashboard statistics
   const fetchDashboardStats = useCallback(async () => {
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL ||
-        (process.env.NODE_ENV === 'production'
-          ? 'https://autosparesbackend-production.up.railway.app/api/v1'
-          : 'http://localhost:4210/api/v1');
-      const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+      setLoading(true);
 
-      // Fetch dashboard stats from the dedicated endpoint
-      const [statsResponse, pnlResponse] = await Promise.all([
-        fetch(`${apiBase}/orders/dashboard/stats`, {
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          }
-        }),
-        fetch(`${apiBase}/reports/pnl`, {
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          }
-        }),
-      ]);
+      // Load main dashboard first so UI can render; P&L is secondary
+      const statsResult = await fetchApi("/orders/dashboard/stats");
+      const dashboardData = statsResult?.data ?? statsResult ?? {};
 
-      let dashboardData: any = {};
-      if (statsResponse.ok) {
-        const statsResult = await statsResponse.json();
-        dashboardData = statsResult?.data ?? statsResult ?? {};
-      }
-
-      if (pnlResponse.ok) {
-        const pnlResult = await pnlResponse.json();
-        setPnl(pnlResult?.data ?? null);
-      }
-
-      // Use data from dashboard stats endpoint
       const totalRevenue = dashboardData.totalRevenue ?? 0;
       const totalOrders = dashboardData.totalOrders ?? 0;
-
-      // Use data from dashboard stats endpoint
       const customerCount = dashboardData.totalCustomers ?? 0;
-
-      // Use data from dashboard stats endpoint
       const productCount = dashboardData.totalProducts ?? 0;
-      
-      // Get stock alerts from dashboard data
-      const stockAlertsData = dashboardData.stockAlerts?.map((item: any) => ({
-        id: item.id,
-        name: item.name,
-        category: item.category,
-        quantity: toNumber(item.quantity),
-        minQuantity: toNumber(item.minQuantity),
-        sellingPrice: toNumber(item.sellingPrice)
-      })) ?? [];
 
-      // Use sales chart data from dashboard
-      const salesData = dashboardData.salesChartData?.map((item: any) => ({
-        date: item.date,
-        sales: toNumber(item.sales)
-      })) ?? [];
+      const stockAlertsData =
+        dashboardData.stockAlerts?.map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          category: item.category,
+          quantity: toNumber(item.quantity),
+          minQuantity: toNumber(item.minQuantity),
+          sellingPrice: toNumber(item.sellingPrice),
+        })) ?? [];
 
-      // Use recent orders data from dashboard
-      const recentOrdersData = dashboardData.recentOrders?.map((order: any) => ({
-        id: order.id,
-        orderNumber: order.orderNumber,
-        customer: order.customer,
-        email: order.email,
-        phone: order.phone,
-        total: String(order.total),
-        status: order.status,
-        paymentStatus: order.paymentStatus,
-        date: order.date,
-        items: order.items || []
-      })) ?? [];
+      const salesData =
+        dashboardData.salesChartData?.map((item: any) => ({
+          date: item.date,
+          sales: toNumber(item.sales),
+        })) ?? [];
 
-      // Use top products data from dashboard
-      const topProductsData = dashboardData.topProducts?.map((product: any) => ({
-        id: product.id,
-        name: product.name,
-        category: product.category,
-        quantity: 0, // Not provided in dashboard data
-        minQuantity: 0, // Not provided in dashboard data
-        sellingPrice: 0, // Not provided in dashboard data
-        totalSold: toNumber(product.totalSold),
-        revenue: toNumber(product.totalRevenue)
-      })) ?? [];
-      
-      console.log('⭐ Final top products data:', topProductsData);
+      const recentOrdersData =
+        dashboardData.recentOrders?.map((order: any) => ({
+          id: order.id,
+          orderNumber: order.orderNumber,
+          customer: order.customer,
+          email: order.email,
+          phone: order.phone,
+          total: String(order.total),
+          status: order.status,
+          paymentStatus: order.paymentStatus,
+          date: order.date,
+          items: order.items || [],
+        })) ?? [];
 
-      console.log('⚠️ Final stock alerts data:', stockAlertsData);
+      const topProductsData =
+        dashboardData.topProducts?.map((product: any) => ({
+          id: product.id,
+          name: product.name,
+          category: product.category,
+          quantity: 0,
+          minQuantity: 0,
+          sellingPrice: 0,
+          totalSold: toNumber(product.totalSold),
+          revenue: toNumber(product.totalRevenue),
+        })) ?? [];
 
       setDashboardStats({
         totalRevenue,
@@ -223,7 +188,7 @@ const StoreMangerPage = () => {
         revenueChange: dashboardData.revenueChange || 0,
         ordersChange: dashboardData.ordersChange || 0,
         productsChange: dashboardData.productsChange || 0,
-        customersChange: dashboardData.customersChange || 0
+        customersChange: dashboardData.customersChange || 0,
       });
 
       setSalesChartData(salesData);
@@ -231,54 +196,33 @@ const StoreMangerPage = () => {
       setTopProducts(topProductsData);
       setStockAlerts(stockAlertsData);
       setUsingMockData(false);
-
-    } catch (error) {
-      console.error('Failed to fetch dashboard data:', error);
-      setUsingMockData(true);
-      
-      // Fallback to mock data
-      setDashboardStats({
-        totalRevenue: 311700000,
-        totalOrders: 347,
-        totalProducts: 1429,
-        totalCustomers: 0,
-        revenueChange: 0, // No previous data for mock
-        ordersChange: 0,  // No previous data for mock
-        productsChange: 0,
-        customersChange: 0
-      });
-
-      setSalesChartData([
-        { date: 'Mon', sales: 4000 * 3700 },
-        { date: 'Tue', sales: 3000 * 3700 },
-        { date: 'Wed', sales: 5000 * 3700 },
-        { date: 'Thu', sales: 4500 * 3700 },
-        { date: 'Fri', sales: 6000 * 3700 },
-        { date: 'Sat', sales: 5500 * 3700 },
-        { date: 'Sun', sales: 7000 * 3700 },
-      ]);
-
-      setRecentOrders([
-        { id: 'ORD-001', customer: 'Liam Johnson', email: 'liam@example.com', phone: '0755123456', total: '925000', status: 'Paid', paymentStatus: 'Paid', date: '2024-01-15', items: [] },
-        { id: 'ORD-002', customer: 'Olivia Smith', email: 'olivia@example.com', phone: '0777123456', total: '557775', status: 'Pending', paymentStatus: 'Pending', date: '2024-01-15', items: [] },
-        { id: 'ORD-003', customer: 'Noah Williams', email: 'noah@example.com', phone: '0788123456', total: '1759350', status: 'Paid', paymentStatus: 'Paid', date: '2024-01-15', items: [] },
-        { id: 'ORD-004', customer: 'Emma Brown', email: 'emma@example.com', phone: '0799123456', total: '296000', status: 'Shipped', paymentStatus: 'Paid', date: '2024-01-15', items: [] },
-      ]);
-
-      setTopProducts([
-        { id: '1', name: 'Wireless Earbuds', category: 'Electronics', quantity: 50, minQuantity: 10, sellingPrice: 150000, totalSold: 1200, revenue: 180000000 },
-        { id: '2', name: 'Smart Watch', category: 'Electronics', quantity: 30, minQuantity: 5, sellingPrice: 300000, totalSold: 980, revenue: 294000000 },
-        { id: '3', name: 'Gaming Mouse', category: 'Electronics', quantity: 75, minQuantity: 15, sellingPrice: 80000, totalSold: 750, revenue: 60000000 },
-        { id: '4', name: 'VR Headset', category: 'Electronics', quantity: 25, minQuantity: 5, sellingPrice: 500000, totalSold: 500, revenue: 250000000 },
-      ]);
-
-      setStockAlerts([
-        { id: '1', name: 'Organic Coffee Beans', category: 'Groceries', quantity: 8, minQuantity: 10, sellingPrice: 25000 },
-        { id: '2', name: 'Artisan Bread', category: 'Bakery', quantity: 12, minQuantity: 15, sellingPrice: 15000 },
-        { id: '3', name: 'Vintage T-Shirt', category: 'Apparel', quantity: 5, minQuantity: 5, sellingPrice: 45000 },
-      ]);
-    } finally {
       setLoading(false);
+
+      // P&L strip — don't block the main dashboard on this heavier report
+      try {
+        const pnlResult = await fetchApi("/reports/pnl");
+        setPnl(pnlResult?.data ?? null);
+      } catch {
+        setPnl(null);
+      }
+    } catch (error) {
+      console.error("Failed to fetch dashboard data:", error);
+      setUsingMockData(true);
+      setLoading(false);
+      setDashboardStats({
+        totalRevenue: 0,
+        totalOrders: 0,
+        totalProducts: 0,
+        totalCustomers: 0,
+        revenueChange: 0,
+        ordersChange: 0,
+        productsChange: 0,
+        customersChange: 0,
+      });
+      setSalesChartData([]);
+      setRecentOrders([]);
+      setTopProducts([]);
+      setStockAlerts([]);
     }
   }, []);
 
@@ -488,24 +432,24 @@ const StoreMangerPage = () => {
                         const initials = order.customer.split(' ').map(n => n[0]).join('').toUpperCase();
                         const timeAgo = formatDisplayDate(order.date);
                         return (
-                          <div key={order.id} className={`flex items-center justify-between p-4 hover:bg-secondary/50 rounded-xl transition-all duration-300 group cursor-pointer ${isLoaded ? 'animate-fade-in' : 'opacity-0'}`} style={{ animationDelay: `${index * 100}ms` }}>
-                            <div className="flex items-center space-x-4">
-                              <div className="w-12 h-12 bg-gradient-to-r from-blue-400 to-purple-500 rounded-xl flex items-center justify-center text-white font-semibold shadow-medium">
+                          <div key={order.id} className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 sm:p-4 hover:bg-secondary/50 rounded-xl transition-all duration-300 group cursor-pointer ${isLoaded ? 'animate-fade-in' : 'opacity-0'}`} style={{ animationDelay: `${index * 100}ms` }}>
+                            <div className="flex items-center space-x-3 sm:space-x-4 min-w-0">
+                              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-blue-400 to-purple-500 rounded-xl flex items-center justify-center text-white font-semibold shadow-medium shrink-0">
                                 {initials}
                               </div>
-                              <div>
-                                <p className="font-semibold text-foreground">{order.customer}</p>
-                                <p className="text-sm text-muted-foreground">{order.orderNumber || order.id} • {timeAgo}</p>
+                              <div className="min-w-0">
+                                <p className="font-semibold text-foreground truncate">{order.customer}</p>
+                                <p className="text-sm text-muted-foreground truncate">{order.orderNumber || order.id} • {timeAgo}</p>
                               </div>
                             </div>
-                            <div className="flex items-center space-x-4">
-                              <div className="text-right">
-                                <p className="font-bold text-foreground text-lg">UGX {formatAmount(order.total)}</p>
+                            <div className="flex items-center justify-between sm:justify-end space-x-3 sm:space-x-4 pl-13 sm:pl-0">
+                              <div className="text-left sm:text-right">
+                                <p className="font-bold text-foreground text-base sm:text-lg">UGX {formatAmount(order.total)}</p>
                                 <span className={`text-xs px-3 py-1 rounded-full border font-medium ${getStatusColor(order.status)}`}>
                                   {order.status}
                                 </span>
                               </div>
-                              <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                              <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors shrink-0 hidden sm:block" />
                             </div>
                           </div>
                         );
@@ -616,4 +560,4 @@ const StoreMangerPage = () => {
   );
 };
 
-export default StoreMangerPage;
+export default StoreManagerPage;

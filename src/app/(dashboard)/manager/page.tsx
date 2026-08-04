@@ -1,5 +1,6 @@
 "use client";
 import { formatDisplayDate } from '@/lib/formatDate';
+import { fetchApi } from '@/lib/apiConfig';
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -99,6 +100,7 @@ const ManagerPage = () => {
     productsChange: 0,
     customersChange: 0
   });
+  const [pnl, setPnl] = useState<any>(null);
   const [salesChartData, setSalesChartData] = useState<SalesChartData[]>([]);
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [topProducts, setTopProducts] = useState<InventoryItem[]>([]);
@@ -125,243 +127,68 @@ const ManagerPage = () => {
   // Fetch dashboard statistics
   const fetchDashboardStats = useCallback(async () => {
     try {
-      const apiBase = process.env.NODE_ENV === 'production' 
-        ? 'https://autosparesbackend-production.up.railway.app/api/v1'
-        : 'http://localhost:4210/api/v1';
-      const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+      setLoading(true);
 
-      // Fetch orders for revenue and order count
-      const ordersResponse = await fetch(`${apiBase}/orders?page=1&limit=1000`, {
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        }
-      });
+      // Load main dashboard first so UI can render; P&L is secondary
+      const statsResult = await fetchApi("/orders/dashboard/stats");
+      const dashboardData = statsResult?.data ?? statsResult ?? {};
 
-      let ordersData: any[] = [];
-      if (ordersResponse.ok) {
-        const ordersResult = await ordersResponse.json();
-        ordersData = ordersResult?.data?.items ?? ordersResult?.items ?? ordersResult ?? [];
-      }
+      const totalRevenue = dashboardData.totalRevenue ?? 0;
+      const totalOrders = dashboardData.totalOrders ?? 0;
+      const customerCount = dashboardData.totalCustomers ?? 0;
+      const productCount = dashboardData.totalProducts ?? 0;
 
-      // Calculate revenue and order stats
-      const totalRevenue = ordersData.reduce((sum, order) => {
-        const total = toNumber(order.total ?? order.totals?.total ?? order.amount?.total ?? 0);
-        return sum + total;
-      }, 0);
+      const stockAlertsData =
+        dashboardData.stockAlerts?.map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          category: item.category,
+          quantity: toNumber(item.quantity),
+          minQuantity: toNumber(item.minQuantity),
+          sellingPrice: toNumber(item.sellingPrice),
+        })) ?? [];
 
-      const totalOrders = ordersData.length;
+      const salesData =
+        dashboardData.salesChartData?.map((item: any) => ({
+          date: item.date,
+          sales: toNumber(item.sales),
+        })) ?? [];
 
-      // Fetch customers count
-      let customerCount = 0;
-      try {
-        const customersResponse = await fetch(`${apiBase}/customers/stats`, {
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          }
-        });
-        if (customersResponse.ok) {
-          const customersResult = await customersResponse.json();
-          customerCount = customersResult?.data?.total ?? 0;
-        }
-      } catch (err) {
-        console.warn('Failed to fetch customer stats:', err);
-      }
-
-      // Fetch inventory for product count and stock alerts
-      let productCount = 0;
-      let inventoryItems: InventoryItem[] = [];
-      try {
-        const inventoryResponse = await fetch(`${apiBase}/inventory/inventory`, {
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          }
-        });
-        if (inventoryResponse.ok) {
-          const inventoryResult = await inventoryResponse.json();
-          const items = inventoryResult?.data?.items ?? inventoryResult?.items ?? inventoryResult ?? [];
-          productCount = items.length;
-          inventoryItems = items.map((item: any) => ({
-            id: item.id,
-            name: item.name ?? item.productName ?? 'Unknown Product',
-            category: item.category?.name ?? item.categoryName ?? '',
-            quantity: toNumber(item.quantity ?? item.stock ?? 0),
-            minQuantity: toNumber(item.minQuantity ?? item.minStock ?? 10),
-            sellingPrice: toNumber(item.sellingPrice ?? item.price ?? 0),
-            totalSold: toNumber(item.totalSold ?? 0),
-            revenue: toNumber(item.revenue ?? 0)
-          }));
-        }
-      } catch (err) {
-        console.warn('Failed to fetch inventory:', err);
-      }
-
-      // Generate sales chart data (last 7 days)
-      const salesData: SalesChartData[] = [];
-      const today = new Date();
-      for (let i = 6; i >= 0; i--) {
-        const date = new Date(today);
-        date.setDate(date.getDate() - i);
-        const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
-        
-        // Filter orders for this day
-        const dayOrders = ordersData.filter((order: any) => {
-          const orderDate = new Date(order.date ?? order.createdAt ?? order.placedAt ?? '');
-          return orderDate.toDateString() === date.toDateString();
-        });
-        
-        const dayRevenue = dayOrders.reduce((sum, order) => {
-          return sum + toNumber(order.total ?? order.totals?.total ?? order.amount?.total ?? 0);
-        }, 0);
-        
-        salesData.push({
-          date: dayName,
-          sales: dayRevenue
-        });
-      }
-
-      // Get recent orders (last 4)
-      const recentOrdersData = ordersData
-        .sort((a, b) => new Date(b.date ?? b.createdAt ?? '').getTime() - new Date(a.date ?? a.createdAt ?? '').getTime())
-        .slice(0, 4)
-        .map((order: any) => ({
+      const recentOrdersData =
+        dashboardData.recentOrders?.map((order: any) => ({
           id: order.id,
-          orderNumber: order.orderNumber ?? order.shortId ?? order.displayId,
-          customer: order.customer?.name ?? order.customerName ?? order.clientName ?? 'Unknown',
-          email: order.customer?.email ?? order.customerEmail ?? order.email ?? '',
-          phone: order.customer?.phone ?? order.customerPhone ?? order.phone ?? '',
-          total: String(order.total ?? order.totals?.total ?? order.amount?.total ?? 0),
-          status: order.orderStatus ?? order.status ?? 'Pending',
-          paymentStatus: order.payment?.status ?? order.paymentStatus ?? 'Pending',
-          date: order.date ?? order.createdAt ?? order.placedAt ?? '',
-          items: Array.isArray(order.items) ? order.items : []
-        }));
+          orderNumber: order.orderNumber,
+          customer: order.customer,
+          email: order.email,
+          phone: order.phone,
+          total: String(order.total),
+          status: order.status,
+          paymentStatus: order.paymentStatus,
+          date: order.date,
+          items: order.items || [],
+        })) ?? [];
 
-      // Get top products from consolidated API
-      console.log('🔄 Fetching top products from consolidated API...');
-      let topProductsData: InventoryItem[] = [];
-      
-      try {
-        const dashboardResponse = await fetch(`${apiBase}/orders/dashboard/stats`, {
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          }
-        });
-        
-        if (dashboardResponse.ok) {
-          const dashboardResult = await dashboardResponse.json();
-          console.log('📊 Dashboard API response:', dashboardResult);
-          
-          if (dashboardResult.status?.returnCode === 200 && dashboardResult.data?.topProducts) {
-            topProductsData = dashboardResult.data.topProducts.map((product: any) => ({
-              id: product.id,
-              name: product.name,
-              category: product.category,
-              quantity: product.quantity || 0,
-              minQuantity: product.minQuantity || 0,
-              sellingPrice: product.sellingPrice || 0,
-              totalSold: product.totalSold || 0,
-              revenue: product.totalRevenue || 0
-            }));
-            console.log('⭐ Top products from API:', topProductsData);
-          }
-        }
-      } catch (err) {
-        console.warn('Failed to fetch top products from dashboard API:', err);
-      }
-      
-      // Fallback to inventory items if dashboard API fails
-      if (topProductsData.length === 0) {
-        console.log('📦 Using inventory items as fallback for top products:', inventoryItems);
-        topProductsData = inventoryItems
-          .map(item => {
-            const hasRevenue = item.revenue && item.revenue > 0;
-            const hasTotalSold = item.totalSold && item.totalSold > 0;
-            console.log(`Product ${item.name}: revenue=${item.revenue}, totalSold=${item.totalSold}, sellingPrice=${item.sellingPrice}, hasRevenue=${hasRevenue}, hasTotalSold=${hasTotalSold}`);
-            
-            // If no sales data, use selling price as a proxy for "value"
-            const sortValue = hasRevenue ? item.revenue : 
-                             hasTotalSold ? ((item.totalSold ?? 0) * item.sellingPrice) : 
-                             item.sellingPrice;
-            
-            return {
-              ...item,
-              sortValue: sortValue || 0
-            };
-          })
-          .sort((a, b) => b.sortValue - a.sortValue)
-          .slice(0, 4)
-          .map(item => ({
-            id: item.id,
-            name: item.name,
-            category: item.category,
-            quantity: item.quantity,
-            minQuantity: item.minQuantity,
-            sellingPrice: item.sellingPrice,
-            totalSold: item.totalSold || 0,
-            revenue: item.revenue || 0
-          }));
-      }
-      
-      console.log('⭐ Final top products data:', topProductsData);
-
-      // Get stock alerts from dedicated API
-      console.log('🔄 Fetching stock alerts from dedicated API...');
-      let stockAlertsData: InventoryItem[] = [];
-      
-      try {
-        const stockAlertsResponse = await fetch(`${apiBase}/inventory/stock-alerts`, {
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          }
-        });
-        
-        if (stockAlertsResponse.ok) {
-          const stockAlertsResult = await stockAlertsResponse.json();
-          console.log('📊 Stock alerts API response:', stockAlertsResult);
-          
-          if (stockAlertsResult.status?.returnCode === 200 && stockAlertsResult.data?.alerts) {
-            stockAlertsData = stockAlertsResult.data.alerts.map((alert: any) => ({
-              id: alert.id,
-              name: alert.name,
-              category: alert.category,
-              quantity: alert.quantity || 0,
-              minQuantity: alert.minStock || alert.minQuantity || 0,
-              sellingPrice: 0,
-              totalSold: 0,
-              revenue: 0
-            }));
-            console.log('⚠️ Stock alerts from API:', stockAlertsData);
-          }
-        }
-      } catch (err) {
-        console.warn('Failed to fetch stock alerts from dedicated API:', err);
-      }
-      
-      // Fallback to inventory items if stock alerts API fails
-      if (stockAlertsData.length === 0) {
-        console.log('📦 Using inventory items as fallback for stock alerts:', inventoryItems);
-        stockAlertsData = inventoryItems
-          .filter(item => item.quantity <= item.minQuantity)
-          .sort((a, b) => a.quantity - b.quantity)
-          .slice(0, 3);
-      }
-      
-      console.log('⚠️ Final stock alerts data:', stockAlertsData);
+      const topProductsData =
+        dashboardData.topProducts?.map((product: any) => ({
+          id: product.id,
+          name: product.name,
+          category: product.category,
+          quantity: 0,
+          minQuantity: 0,
+          sellingPrice: 0,
+          totalSold: toNumber(product.totalSold),
+          revenue: toNumber(product.totalRevenue),
+        })) ?? [];
 
       setDashboardStats({
         totalRevenue,
         totalOrders,
         totalProducts: productCount,
         totalCustomers: customerCount,
-        revenueChange: 12.5, // This would need historical data to calculate
-        ordersChange: 8.2,   // This would need historical data to calculate
-        productsChange: 0,   // This would need historical data to calculate
-        customersChange: 0   // This would need historical data to calculate
+        revenueChange: dashboardData.revenueChange || 0,
+        ordersChange: dashboardData.ordersChange || 0,
+        productsChange: dashboardData.productsChange || 0,
+        customersChange: dashboardData.customersChange || 0,
       });
 
       setSalesChartData(salesData);
@@ -369,54 +196,33 @@ const ManagerPage = () => {
       setTopProducts(topProductsData);
       setStockAlerts(stockAlertsData);
       setUsingMockData(false);
-
-    } catch (error) {
-      console.error('Failed to fetch dashboard data:', error);
-      setUsingMockData(true);
-      
-      // Fallback to mock data
-      setDashboardStats({
-        totalRevenue: 311700000,
-        totalOrders: 347,
-        totalProducts: 1429,
-        totalCustomers: 0,
-        revenueChange: 12.5,
-        ordersChange: 8.2,
-        productsChange: 0,
-        customersChange: 0
-      });
-
-      setSalesChartData([
-        { date: 'Mon', sales: 4000 * 3700 },
-        { date: 'Tue', sales: 3000 * 3700 },
-        { date: 'Wed', sales: 5000 * 3700 },
-        { date: 'Thu', sales: 4500 * 3700 },
-        { date: 'Fri', sales: 6000 * 3700 },
-        { date: 'Sat', sales: 5500 * 3700 },
-        { date: 'Sun', sales: 7000 * 3700 },
-      ]);
-
-      setRecentOrders([
-        { id: 'ORD-001', customer: 'Liam Johnson', email: 'liam@example.com', phone: '0755123456', total: '925000', status: 'Paid', paymentStatus: 'Paid', date: '2024-01-15', items: [] },
-        { id: 'ORD-002', customer: 'Olivia Smith', email: 'olivia@example.com', phone: '0777123456', total: '557775', status: 'Pending', paymentStatus: 'Pending', date: '2024-01-15', items: [] },
-        { id: 'ORD-003', customer: 'Noah Williams', email: 'noah@example.com', phone: '0788123456', total: '1759350', status: 'Paid', paymentStatus: 'Paid', date: '2024-01-15', items: [] },
-        { id: 'ORD-004', customer: 'Emma Brown', email: 'emma@example.com', phone: '0799123456', total: '296000', status: 'Shipped', paymentStatus: 'Paid', date: '2024-01-15', items: [] },
-      ]);
-
-      setTopProducts([
-        { id: '1', name: 'Wireless Earbuds', category: 'Electronics', quantity: 50, minQuantity: 10, sellingPrice: 150000, totalSold: 1200, revenue: 180000000 },
-        { id: '2', name: 'Smart Watch', category: 'Electronics', quantity: 30, minQuantity: 5, sellingPrice: 300000, totalSold: 980, revenue: 294000000 },
-        { id: '3', name: 'Gaming Mouse', category: 'Electronics', quantity: 75, minQuantity: 15, sellingPrice: 80000, totalSold: 750, revenue: 60000000 },
-        { id: '4', name: 'VR Headset', category: 'Electronics', quantity: 25, minQuantity: 5, sellingPrice: 500000, totalSold: 500, revenue: 250000000 },
-      ]);
-
-      setStockAlerts([
-        { id: '1', name: 'Organic Coffee Beans', category: 'Groceries', quantity: 8, minQuantity: 10, sellingPrice: 25000 },
-        { id: '2', name: 'Artisan Bread', category: 'Bakery', quantity: 12, minQuantity: 15, sellingPrice: 15000 },
-        { id: '3', name: 'Vintage T-Shirt', category: 'Apparel', quantity: 5, minQuantity: 5, sellingPrice: 45000 },
-      ]);
-    } finally {
       setLoading(false);
+
+      // P&L strip — don't block the main dashboard on this heavier report
+      try {
+        const pnlResult = await fetchApi("/reports/pnl");
+        setPnl(pnlResult?.data ?? null);
+      } catch {
+        setPnl(null);
+      }
+    } catch (error) {
+      console.error("Failed to fetch dashboard data:", error);
+      setUsingMockData(true);
+      setLoading(false);
+      setDashboardStats({
+        totalRevenue: 0,
+        totalOrders: 0,
+        totalProducts: 0,
+        totalCustomers: 0,
+        revenueChange: 0,
+        ordersChange: 0,
+        productsChange: 0,
+        customersChange: 0,
+      });
+      setSalesChartData([]);
+      setRecentOrders([]);
+      setTopProducts([]);
+      setStockAlerts([]);
     }
   }, []);
 
@@ -442,16 +248,51 @@ const ManagerPage = () => {
       )}
 
       {loading && (
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto"></div>
-            <p className="mt-4 text-muted-foreground">Loading dashboard data...</p>
+        <div className="space-y-4 animate-pulse">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="h-20 rounded-xl bg-muted/40" />
+            ))}
           </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="h-32 rounded-2xl bg-muted/40" />
+            ))}
+          </div>
+          <p className="text-center text-sm text-muted-foreground pt-2">Loading dashboard…</p>
         </div>
       )}
 
       {!loading && (
         <>
+          {/* P&L strip */}
+          {pnl && (
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
+              <div className="glass p-4 rounded-xl border border-border/50">
+                <p className="text-xs text-muted-foreground">Today&apos;s Sales</p>
+                <p className="text-lg font-bold">UGX {formatAmount(pnl.todaySales)}</p>
+              </div>
+              <div className="glass p-4 rounded-xl border border-border/50">
+                <p className="text-xs text-muted-foreground">Gross Profit</p>
+                <p className="text-lg font-bold text-emerald-600">UGX {formatAmount(pnl.grossProfit)}</p>
+              </div>
+              <div className="glass p-4 rounded-xl border border-border/50">
+                <p className="text-xs text-muted-foreground">Net Profit</p>
+                <p className="text-lg font-bold text-blue-700">UGX {formatAmount(pnl.netProfit)}</p>
+                <p className="text-[10px] text-muted-foreground">{pnl.profitMargin}% margin</p>
+              </div>
+              <div className="glass p-4 rounded-xl border border-border/50">
+                <p className="text-xs text-muted-foreground">Expenses (period)</p>
+                <p className="text-lg font-bold text-red-600">UGX {formatAmount(pnl.expenses)}</p>
+              </div>
+              <div className="glass p-4 rounded-xl border border-border/50">
+                <p className="text-xs text-muted-foreground">Cash In / Balances Due</p>
+                <p className="text-sm font-semibold">Cash UGX {formatAmount(pnl.cashInHand)}</p>
+                <p className="text-xs text-amber-700">Due UGX {formatAmount(pnl.outstandingBalances)}</p>
+              </div>
+            </div>
+          )}
+
           {/* Stats Overview */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
             <div className={`glass p-6 rounded-2xl border border-border/50 hover:shadow-large transition-all duration-300 interactive ${isLoaded ? 'animate-scale-in' : 'opacity-0'}`}>
@@ -460,9 +301,17 @@ const ManagerPage = () => {
                   <p className="text-sm font-medium text-muted-foreground mb-2">Total Revenue</p>
                   <p className="text-3xl font-bold text-foreground">UGX {formatAmount(dashboardStats.totalRevenue)}</p>
                   <div className="flex items-center mt-3">
-                    <ArrowUpRight className="w-4 h-4 text-green-500 mr-1" />
-                    <span className="text-sm text-green-500 font-semibold">+{dashboardStats.revenueChange}%</span>
-                    <span className="text-xs text-muted-foreground ml-2">vs last month</span>
+                    {dashboardStats.totalRevenue > 0 && dashboardStats.revenueChange !== 0 ? (
+                      <>
+                        <ArrowUpRight className="w-4 h-4 text-green-500 mr-1" />
+                        <span className="text-sm text-green-500 font-semibold">
+                          {dashboardStats.revenueChange > 0 ? '+' : ''}{dashboardStats.revenueChange}%
+                        </span>
+                        <span className="text-xs text-muted-foreground ml-2">vs last month</span>
+                      </>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">No previous data</span>
+                    )}
                   </div>
                 </div>
                 <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center shadow-medium">
@@ -477,9 +326,17 @@ const ManagerPage = () => {
                   <p className="text-sm font-medium text-muted-foreground mb-2">Total Orders</p>
                   <p className="text-3xl font-bold text-foreground">{dashboardStats.totalOrders.toLocaleString()}</p>
                   <div className="flex items-center mt-3">
-                    <ArrowUpRight className="w-4 h-4 text-blue-500 mr-1" />
-                    <span className="text-sm text-blue-500 font-semibold">+{dashboardStats.ordersChange}%</span>
-                    <span className="text-xs text-muted-foreground ml-2">vs last month</span>
+                    {dashboardStats.totalOrders > 0 && dashboardStats.ordersChange !== 0 ? (
+                      <>
+                        <ArrowUpRight className="w-4 h-4 text-blue-500 mr-1" />
+                        <span className="text-sm text-blue-500 font-semibold">
+                          {dashboardStats.ordersChange > 0 ? '+' : ''}{dashboardStats.ordersChange}%
+                        </span>
+                        <span className="text-xs text-muted-foreground ml-2">vs last month</span>
+                      </>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">No previous data</span>
+                    )}
                   </div>
                 </div>
                 <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-medium">
@@ -575,24 +432,24 @@ const ManagerPage = () => {
                         const initials = order.customer.split(' ').map(n => n[0]).join('').toUpperCase();
                         const timeAgo = formatDisplayDate(order.date);
                         return (
-                          <div key={order.id} className={`flex items-center justify-between p-4 hover:bg-secondary/50 rounded-xl transition-all duration-300 group cursor-pointer ${isLoaded ? 'animate-fade-in' : 'opacity-0'}`} style={{ animationDelay: `${index * 100}ms` }}>
-                            <div className="flex items-center space-x-4">
-                              <div className="w-12 h-12 bg-gradient-to-r from-blue-400 to-purple-500 rounded-xl flex items-center justify-center text-white font-semibold shadow-medium">
+                          <div key={order.id} className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 sm:p-4 hover:bg-secondary/50 rounded-xl transition-all duration-300 group cursor-pointer ${isLoaded ? 'animate-fade-in' : 'opacity-0'}`} style={{ animationDelay: `${index * 100}ms` }}>
+                            <div className="flex items-center space-x-3 sm:space-x-4 min-w-0">
+                              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-blue-400 to-purple-500 rounded-xl flex items-center justify-center text-white font-semibold shadow-medium shrink-0">
                                 {initials}
                               </div>
-                              <div>
-                                <p className="font-semibold text-foreground">{order.customer}</p>
-                                <p className="text-sm text-muted-foreground">{order.orderNumber || order.id} • {timeAgo}</p>
+                              <div className="min-w-0">
+                                <p className="font-semibold text-foreground truncate">{order.customer}</p>
+                                <p className="text-sm text-muted-foreground truncate">{order.orderNumber || order.id} • {timeAgo}</p>
                               </div>
                             </div>
-                            <div className="flex items-center space-x-4">
-                              <div className="text-right">
-                                <p className="font-bold text-foreground text-lg">UGX {formatAmount(order.total)}</p>
+                            <div className="flex items-center justify-between sm:justify-end space-x-3 sm:space-x-4 pl-13 sm:pl-0">
+                              <div className="text-left sm:text-right">
+                                <p className="font-bold text-foreground text-base sm:text-lg">UGX {formatAmount(order.total)}</p>
                                 <span className={`text-xs px-3 py-1 rounded-full border font-medium ${getStatusColor(order.status)}`}>
                                   {order.status}
                                 </span>
                               </div>
-                              <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                              <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors shrink-0 hidden sm:block" />
                             </div>
                           </div>
                         );
