@@ -15,7 +15,8 @@ import {
   Building2, Tags, Ruler, BadgeDollarSign, RefreshCw,
   Wrench, FolderTree, PiggyBank, MessageSquare, CalendarDays,
   Receipt, Percent, ArrowDownCircle, ArrowUpCircle,
-  History, Shield, KeyRound, Trash2
+  History, Shield, KeyRound, Trash2, Database,
+  Loader2, CheckCircle, XCircle,
 } from 'lucide-react';
 
 // TypeScript interfaces
@@ -98,6 +99,7 @@ const ICON_STYLES: Record<string, { wrap: string; icon: string }> = {
   "Add User": { wrap: "bg-blue-100", icon: "text-blue-600" },
   Profile: { wrap: "bg-slate-100", icon: "text-slate-600" },
   Settings: { wrap: "bg-gray-100", icon: "text-gray-700" },
+  "Database Backup": { wrap: "bg-cyan-100", icon: "text-cyan-700" },
   Logout: { wrap: "bg-red-100", icon: "text-red-500" },
   Alerts: { wrap: "bg-red-100", icon: "text-red-600" },
   Inventory: { wrap: "bg-amber-100", icon: "text-amber-600" },
@@ -304,6 +306,13 @@ export const menuItems: MenuSection[] = [
         isDirectLink: true,
       },
       {
+        icon: Database,
+        label: "Database Backup",
+        href: "/backup",
+        visible: ADMIN_ONLY,
+        isDirectLink: true,
+      },
+      {
         icon: LogOut,
         label: "Logout",
         href: "/logout",
@@ -321,6 +330,7 @@ const Menu = ({ onNavigate }: { onNavigate?: () => void }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [backupStatus, setBackupStatus] = useState<"idle" | "running" | "success" | "error">("idle");
 
   useEffect(() => {
     const userRole = getRole();
@@ -360,6 +370,27 @@ const Menu = ({ onNavigate }: { onNavigate?: () => void }) => {
       router.prefetch(href);
     } catch {
       /* ignore */
+    }
+  };
+
+  const handleDatabaseBackup = async () => {
+    setBackupStatus("running");
+    console.log("Running database backup...");
+
+    try {
+      const response = await fetch("/api/backup", { method: "POST" });
+      const data = await response.json();
+
+      if (data.success) {
+        setBackupStatus("success");
+        console.log("Backup completed:", data.backupFile);
+      } else {
+        setBackupStatus("error");
+        console.error("Backup failed:", data.error);
+      }
+    } catch (error) {
+      setBackupStatus("error");
+      console.error("Backup request failed:", error);
     }
   };
 
@@ -572,6 +603,37 @@ const Menu = ({ onNavigate }: { onNavigate?: () => void }) => {
                       className={menuBtnClass}
                     >
                       <ColoredIcon icon={item.icon} label={item.label} />
+                      <span className="block font-medium text-sm">{item.label}</span>
+                    </button>
+                  );
+                }
+
+                if (item.label === "Database Backup") {
+                  return (
+                    <button
+                      key={item.label}
+                      onClick={handleDatabaseBackup}
+                      disabled={backupStatus === "running"}
+                      className={`${menuBtnClass} disabled:opacity-70`}
+                    >
+                      {backupStatus === "running" && (
+                        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-100">
+                          <Loader2 className="h-4 w-4 animate-spin text-cyan-700" />
+                        </span>
+                      )}
+                      {backupStatus === "success" && (
+                        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-100">
+                          <CheckCircle className="h-4 w-4 text-green-600" />
+                        </span>
+                      )}
+                      {backupStatus === "error" && (
+                        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-100">
+                          <XCircle className="h-4 w-4 text-red-500" />
+                        </span>
+                      )}
+                      {backupStatus === "idle" && (
+                        <ColoredIcon icon={item.icon} label={item.label} />
+                      )}
                       <span className="block font-medium text-sm">{item.label}</span>
                     </button>
                   );
