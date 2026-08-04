@@ -548,8 +548,8 @@ const Menu = ({ onNavigate }: { onNavigate?: () => void }) => {
   }
 
   return (
-    <div className="mt-2 text-sm flex flex-col h-full overflow-y-auto px-1">
-      <div className="flex-grow space-y-1">
+    <div className="mt-2 text-sm flex flex-col px-1 pb-4">
+      <div className="space-y-1">
         {(menuItems as MenuSection[]).map((section) => (
           <div className="flex flex-col gap-1" key={section.title}>
             {section.title !== "Menu" && (

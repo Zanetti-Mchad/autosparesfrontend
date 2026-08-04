@@ -716,11 +716,11 @@ export default function RootLayout({
             )}
             
             {/* Sidebar */}
-            <aside className={`fixed md:relative top-0 left-0 z-50 md:z-auto w-72 sm:w-80 md:w-80 bg-white md:glass border-r border-border/50 min-h-screen transition-all duration-300 transform shadow-xl md:shadow-none ${
+            <aside className={`fixed md:relative top-0 left-0 z-50 md:z-auto w-72 sm:w-80 md:w-80 bg-white md:glass border-r border-border/50 h-dvh max-h-dvh md:h-auto md:min-h-screen md:max-h-none flex flex-col overflow-hidden transition-all duration-300 transform shadow-xl md:shadow-none ${
               isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
             }`}>
               {/* Mobile close button and company branding */}
-              <div className="md:hidden flex items-center justify-between p-4 border-b border-border/50">
+              <div className="md:hidden flex items-center justify-between p-4 border-b border-border/50 shrink-0">
                 {!isBusinessLoading && businessName && (
                   <div className="flex items-center space-x-3">
                     <div className="w-10 h-10 bg-gradient-primary rounded-xl flex items-center justify-center shadow-glow floating overflow-hidden">
@@ -750,7 +750,7 @@ export default function RootLayout({
               </div>
               
               
-              <nav className="p-4 sm:p-6">
+              <nav className="p-4 sm:p-6 flex-1 min-h-0 overflow-y-auto overscroll-contain">
                 <Menu onNavigate={() => setIsMobileMenuOpen(false)} />
               </nav>
             </aside>
