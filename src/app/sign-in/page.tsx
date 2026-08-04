@@ -801,12 +801,12 @@ const Login = () => {
                 {/* Website Link */}
                 <div className="text-sm text-gray-600">
                   <a 
-                    href="https://www.autospares.com" 
+                    href="https://www.smartduuka.com" 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="font-medium text-blue-600 hover:text-blue-500 transition-colors"
                   >
-                    www.autospares.com
+                    www.smartduuka.com
                   </a>
                 </div>
               </motion.div>
