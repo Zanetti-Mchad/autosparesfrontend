@@ -262,29 +262,7 @@ const Login = () => {
         // Clear any existing cache on login
         dataCache.handleLogin();
 
-        // Create login log (wrapped in try-catch to prevent blocking login on failure)
-        try {
-          // Only attempt to log if the endpoint exists
-          if (process.env.NEXT_PUBLIC_ENABLE_LOGGING !== 'false') {
-            const logResponse = await fetchApi('/logs', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${accessToken}`
-              },
-              body: JSON.stringify({
-                userId: userId,
-                action: "LOGIN",
-                status: "SUCCESS"
-              })
-            });
-
-            console.log('Login log created:', logResponse);
-          }
-        } catch (logError) {
-          console.warn('Non-critical error creating login log:', logError);
-          // Continue with login even if logging fails
-        }
+        // LOGIN is already recorded by the backend on /auth/login — do not POST /logs again
 
         // Continue with redirect
         const returnCode = responseData.status?.returnCode as any;

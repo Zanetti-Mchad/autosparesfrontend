@@ -9,6 +9,7 @@ export default function Page() {
       description="Sales overview for the selected period"
       endpoint="/reports/sales"
       listPath="data.orders"
+      enableDateRange
       summaryKeys={[
         { key: "revenue", label: "Revenue", format: "currency" },
         { key: "paid", label: "Paid", format: "currency" },

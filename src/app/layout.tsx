@@ -24,6 +24,8 @@ const ApiDebuggerInitializer = dynamic(
 
 const inter = Inter({ subsets: ["latin"] });
 
+const AUTH_PATHS = ['/sign-in', '/register', '/forgot-password', '/reset-password'];
+
 // Using shared buildApiUrl from apiConfig ensures Railway backend is used by default
 
 // API Response interfaces
@@ -88,7 +90,11 @@ const LogoutDialog = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => voi
               onClick={() => {
                 localStorage.removeItem('user');
                 localStorage.removeItem('accessToken');
-                router.push('/sign-in');
+                localStorage.removeItem('refreshToken');
+                localStorage.removeItem('userRole');
+                localStorage.removeItem('userId');
+                onClose();
+                router.replace('/sign-in');
               }}
               className="flex-1 px-4 py-2 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-xl hover:shadow-glow transition-all"
             >
@@ -108,6 +114,8 @@ export default function RootLayout({
 }>) {
   const router = useRouter();
   const pathname = usePathname();
+  const isAuthPage = pathname ? AUTH_PATHS.includes(pathname) : false;
+  const isRootPath = pathname === '/';
   const [activeTab, setActiveTab] = useState(pathname || '/');
   const [userData, setUserData] = useState<{
     firstName: string;
@@ -145,7 +153,18 @@ export default function RootLayout({
   useEffect(() => {
     setIsMobileMenuOpen(false);
     setShowAlertsPanel(false);
+    // Root layout state survives client navigations — clear dialog on route change
+    setShowLogoutDialog(false);
   }, [pathname]);
+
+  // Ensure dialog cannot stick open across logout → sign-in → login
+  useEffect(() => {
+    if (isAuthPage || isRootPath) {
+      setShowLogoutDialog(false);
+      setUserData(null);
+      setIsLoaded(false);
+    }
+  }, [isAuthPage, isRootPath]);
 
   useEffect(() => {
     const onScroll = () => setShowScrollTop(window.scrollY > 300);
@@ -230,20 +249,25 @@ export default function RootLayout({
     }
   }, []);
 
-  // Show local user immediately, refresh photo in background
+  // Resolve auth before painting the dashboard shell (avoids flash → sign-in)
   useEffect(() => {
-    const loadUserData = async () => {
+    if (isAuthPage || isRootPath) {
       setIsLoaded(true);
+      return;
+    }
 
+    const loadUserData = async () => {
       try {
         const userDataStr = localStorage.getItem('user');
         if (!userDataStr) {
-          router.push('/sign-in');
+          router.replace('/sign-in');
+          setIsLoaded(true);
           return;
         }
 
         const cachedUser = JSON.parse(userDataStr);
         setUserData(cachedUser);
+        setIsLoaded(true);
 
         const dbUserData = await fetchUserData(cachedUser.id);
         if (dbUserData) {
@@ -256,11 +280,13 @@ export default function RootLayout({
         }
       } catch (error) {
         console.error('Error loading user data:', error);
+        router.replace('/sign-in');
+        setIsLoaded(true);
       }
     };
 
     loadUserData();
-  }, [router]);
+  }, [router, isAuthPage, isRootPath]);
 
   // Fetch business settings from database
   useEffect(() => {
@@ -395,9 +421,7 @@ export default function RootLayout({
     setActiveTab(path);
   };
 
-  const isAuthPage = pathname ? ['/sign-in', '/register', '/forgot-password', '/reset-password'].includes(pathname) : false;
-
-  if (isAuthPage) {
+  if (isAuthPage || isRootPath) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -411,6 +435,23 @@ export default function RootLayout({
           <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-fuchsia-50 to-pink-50 p-4">
             {children}
           </div>
+        </body>
+      </html>
+    );
+  }
+
+  // Auth still resolving or redirecting — never paint dashboard chrome
+  if (!isLoaded || !userData) {
+    return (
+      <html lang="en" suppressHydrationWarning>
+        <head>
+          <link rel="icon" href="/favicon.ico" sizes="any" />
+          <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+          <link rel="apple-touch-icon" href="/favicon.svg" />
+        </head>
+        <body className={`${inter.className} bg-background`}>
+          <ApiDebuggerInitializer />
+          <div className="min-h-screen bg-background" />
         </body>
       </html>
     );

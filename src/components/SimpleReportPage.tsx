@@ -5,7 +5,7 @@ import { fetchApi } from "@/lib/apiConfig";
 import toast from "react-hot-toast";
 import { formatDisplayDate, looksLikeDateValue } from "@/lib/formatDate";
 import { downloadTablePdf, formatMoney, printTableReport } from "@/lib/reportExport";
-import { Download, Printer, RefreshCw } from "lucide-react";
+import { Download, Filter, Printer, RefreshCw } from "lucide-react";
 
 type ColumnDef = {
   key: string;
@@ -14,7 +14,13 @@ type ColumnDef = {
   exportValue?: (row: any) => string;
 };
 
-type SummaryKey = { key: string; label: string; format?: "currency" | "number" | "text" };
+type SummaryKey = {
+  key: string;
+  label: string;
+  format?: "currency" | "number" | "text";
+  /** Sum this field across table rows when the payload has no top-level value */
+  sumFrom?: string;
+};
 
 type Props = {
   title: string;
@@ -30,6 +36,12 @@ type Props = {
   dateParam?: string;
   /** Initial date value YYYY-MM-DD when dateParam is set */
   initialDate?: string;
+  /** Show From/To date range filters (sends `from` and `to` query params) */
+  enableDateRange?: boolean;
+  /** Initial From date YYYY-MM-DD (defaults to start of month) */
+  initialFromDate?: string;
+  /** Initial To date YYYY-MM-DD (defaults to today) */
+  initialToDate?: string;
 };
 
 function getByPath(obj: any, path?: string): any {
@@ -73,6 +85,11 @@ function todayISO() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function monthStartISO() {
+  const d = new Date();
+  return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10);
+}
+
 export default function SimpleReportPage({
   title,
   description,
@@ -83,16 +100,32 @@ export default function SimpleReportPage({
   enableExport = true,
   dateParam,
   initialDate,
+  enableDateRange = false,
+  initialFromDate,
+  initialToDate,
 }: Props) {
   const [rows, setRows] = useState<any[]>([]);
   const [payload, setPayload] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [dateValue, setDateValue] = useState(initialDate || todayISO());
+  const [fromDate, setFromDate] = useState(initialFromDate || monthStartISO());
+  const [toDate, setToDate] = useState(initialToDate || todayISO());
+  const [appliedFrom, setAppliedFrom] = useState(initialFromDate || monthStartISO());
+  const [appliedTo, setAppliedTo] = useState(initialToDate || todayISO());
 
   const buildUrl = () => {
-    if (!dateParam) return endpoint;
+    const params = new URLSearchParams();
+    if (dateParam) {
+      params.set(dateParam, dateValue);
+    }
+    if (enableDateRange) {
+      if (appliedFrom) params.set("from", appliedFrom);
+      if (appliedTo) params.set("to", appliedTo);
+    }
+    const qs = params.toString();
+    if (!qs) return endpoint;
     const sep = endpoint.includes("?") ? "&" : "?";
-    return `${endpoint}${sep}${dateParam}=${encodeURIComponent(dateValue)}`;
+    return `${endpoint}${sep}${qs}`;
   };
 
   const load = async () => {
@@ -114,7 +147,16 @@ export default function SimpleReportPage({
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [endpoint, dateParam, dateValue]);
+  }, [endpoint, dateParam, dateValue, enableDateRange, appliedFrom, appliedTo]);
+
+  const applyDateRange = () => {
+    if (fromDate && toDate && fromDate > toDate) {
+      toast.error("From date cannot be after To date");
+      return;
+    }
+    setAppliedFrom(fromDate);
+    setAppliedTo(toDate);
+  };
 
   const autoColumns: ColumnDef[] =
     columns ||
@@ -128,12 +170,18 @@ export default function SimpleReportPage({
           }))
       : [{ key: "_", label: "Data" }]);
 
+  const resolveSummaryValue = (s: SummaryKey) => {
+    const direct = payload?.[s.key] ?? payload?.summary?.[s.key];
+    if (direct != null && direct !== "") return direct;
+    if (s.sumFrom) {
+      return rows.reduce((sum, row) => sum + (Number(row?.[s.sumFrom!]) || 0), 0);
+    }
+    return direct;
+  };
+
   const summaryLines =
     summaryKeys && payload
-      ? summaryKeys.map(
-          (s) =>
-            `${s.label}: ${formatVal(payload[s.key] ?? payload?.summary?.[s.key], s.format)}`
-        )
+      ? summaryKeys.map((s) => `${s.label}: ${formatVal(resolveSummaryValue(s), s.format)}`)
       : undefined;
 
   const exportColumns = autoColumns.map((c) => ({
@@ -142,9 +190,21 @@ export default function SimpleReportPage({
     getValue: (row: any) => plainCell(row, c),
   }));
 
-  const subtitle = dateParam
-    ? `Date: ${formatDisplayDate(dateValue)} · Generated ${formatDisplayDate(new Date().toISOString())}`
+  const periodSubtitle = enableDateRange
+    ? `${formatDisplayDate(appliedFrom)} – ${formatDisplayDate(appliedTo)}`
+    : dateParam
+      ? `Date: ${formatDisplayDate(dateValue)}`
+      : undefined;
+
+  const subtitle = periodSubtitle
+    ? `${periodSubtitle} · Generated ${formatDisplayDate(new Date().toISOString())}`
     : undefined;
+
+  const exportSuffix = enableDateRange
+    ? `_${appliedFrom}_${appliedTo}`
+    : dateParam
+      ? `_${dateValue}`
+      : "";
 
   const handlePrint = () => {
     try {
@@ -168,7 +228,7 @@ export default function SimpleReportPage({
         columns: exportColumns,
         rows,
         summaryLines,
-        fileName: `${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}${dateParam ? `_${dateValue}` : ""}.pdf`,
+        fileName: `${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}${exportSuffix}.pdf`,
       });
       toast.success("PDF downloaded");
     } catch (e: any) {
@@ -229,13 +289,44 @@ export default function SimpleReportPage({
         </div>
       )}
 
+      {enableDateRange && (
+        <div className="border rounded-xl p-4 bg-white flex flex-wrap items-end gap-3">
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">From</label>
+            <input
+              type="date"
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
+              className="border rounded-lg px-3 py-2 bg-white text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">To</label>
+            <input
+              type="date"
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)}
+              className="border rounded-lg px-3 py-2 bg-white text-sm"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={applyDateRange}
+            className="inline-flex items-center gap-2 bg-blue-600 text-white rounded-lg px-4 py-2 text-sm hover:bg-blue-700"
+          >
+            <Filter className="w-4 h-4" />
+            Apply filter
+          </button>
+        </div>
+      )}
+
       {summaryKeys && summaryKeys.length > 0 && payload && (
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {summaryKeys.map((s) => (
             <div key={s.key} className="border rounded-xl p-4 bg-white">
               <div className="text-xs text-gray-500">{s.label}</div>
               <div className="text-lg font-semibold mt-1">
-                {formatVal(payload[s.key] ?? payload?.summary?.[s.key], s.format)}
+                {formatVal(resolveSummaryValue(s), s.format)}
               </div>
             </div>
           ))}

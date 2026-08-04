@@ -1,10 +1,14 @@
 "use client";
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
+/** Fallback if middleware does not run; prefer server redirect to /sign-in. */
 const Homepage = () => {
+  const router = useRouter();
+
   useEffect(() => {
-    window.location.href = '/sign-in';
-  }, []);
+    router.replace('/sign-in');
+  }, [router]);
 
   return null;
 };

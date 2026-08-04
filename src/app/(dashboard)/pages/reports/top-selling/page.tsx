@@ -8,9 +8,21 @@ export default function Page() {
       title="Top Selling Products"
       description="Best performing products"
       endpoint="/reports/top-selling"
-      
-      
-      summaryKeys={[{"key":"totalSold","label":"Units Sold","format":"number"},{"key":"revenue","label":"Revenue","format":"currency"}]}
+      listPath="data.products"
+      enableDateRange
+      summaryKeys={[
+        { key: "totalSold", label: "Units Sold", format: "number", sumFrom: "qty" },
+        { key: "revenue", label: "Revenue", format: "currency", sumFrom: "revenue" },
+      ]}
+      columns={[
+        { key: "name", label: "Product" },
+        { key: "qty", label: "Units Sold" },
+        {
+          key: "revenue",
+          label: "Revenue",
+          render: (row: any) => `UGX ${Number(row.revenue ?? 0).toLocaleString()}`,
+        },
+      ]}
     />
   );
 }
