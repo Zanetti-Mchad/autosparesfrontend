@@ -1,8 +1,9 @@
 "use client";
-import { formatDisplayDate } from '@/lib/formatDate';
+import { formatDisplayDate, isDateInRange } from '@/lib/formatDate';
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { fetchApi } from "@/lib/apiConfig";
+import DateRangeFilter, { defaultStockDateRange } from "@/components/DateRangeFilter";
 import toast from "react-hot-toast";
 
 type Product = { id: string; name: string; cutType?: string; quantity: number };
@@ -24,10 +25,13 @@ type Log = {
 };
 
 export default function ProductionPage() {
+  const initialRange = defaultStockDateRange();
   const [logs, setLogs] = useState<Log[]>([]);
   const [summary, setSummary] = useState<any>(null);
   const [stats, setStats] = useState<any>(null);
   const [products, setProducts] = useState<Product[]>([]);
+  const [fromDate, setFromDate] = useState(initialRange.fromDate);
+  const [toDate, setToDate] = useState(initialRange.toDate);
   const [form, setForm] = useState({
     birdsReceived: "",
     birdsSlaughtered: "",
@@ -40,6 +44,11 @@ export default function ProductionPage() {
   const [outputs, setOutputs] = useState<OutputRow[]>([
     { inventoryId: "", productName: "", cutType: "", quantity: "", weightKg: "" },
   ]);
+
+  const filteredLogs = useMemo(
+    () => logs.filter((l) => isDateInRange(l.productionDate, fromDate, toDate)),
+    [logs, fromDate, toDate]
+  );
 
   const load = async () => {
     try {
@@ -239,6 +248,20 @@ export default function ProductionPage() {
         </p>
       )}
 
+      <div className="border border-gray-300 rounded-xl p-4 bg-white">
+        <DateRangeFilter
+          fromDate={fromDate}
+          toDate={toDate}
+          onFromChange={setFromDate}
+          onToChange={setToDate}
+          onReset={() => {
+            const r = defaultStockDateRange();
+            setFromDate(r.fromDate);
+            setToDate(r.toDate);
+          }}
+        />
+      </div>
+
       <div className="overflow-x-auto border rounded-xl bg-white">
         <table className="min-w-full text-sm">
           <thead className="bg-gray-50 text-left">
@@ -255,19 +278,27 @@ export default function ProductionPage() {
             </tr>
           </thead>
           <tbody>
-            {logs.map((l, index) => (
-              <tr key={l.id} className="border-t">
-                <td className="p-3 text-gray-500 tabular-nums">{index + 1}</td>
-                <td className="p-3 font-mono text-xs">{l.batchNumber}</td>
-                <td className="p-3">{formatDisplayDate(l.productionDate)}</td>
-                <td className="p-3">{l.birdsReceived}</td>
-                <td className="p-3">{l.birdsSlaughtered}</td>
-                <td className="p-3">{l.dressedWeightKg}</td>
-                <td className="p-3">{l.wasteKg}</td>
-                <td className="p-3 font-semibold text-emerald-700">{l.yieldPercent}%</td>
-                <td className="p-3">{l.packsCompleted}</td>
+            {filteredLogs.length === 0 ? (
+              <tr>
+                <td className="p-3 text-gray-500" colSpan={9}>
+                  No production logs for this period
+                </td>
               </tr>
-            ))}
+            ) : (
+              filteredLogs.map((l, index) => (
+                <tr key={l.id} className="border-t">
+                  <td className="p-3 text-gray-500 tabular-nums">{index + 1}</td>
+                  <td className="p-3 font-mono text-xs">{l.batchNumber}</td>
+                  <td className="p-3">{formatDisplayDate(l.productionDate)}</td>
+                  <td className="p-3">{l.birdsReceived}</td>
+                  <td className="p-3">{l.birdsSlaughtered}</td>
+                  <td className="p-3">{l.dressedWeightKg}</td>
+                  <td className="p-3">{l.wasteKg}</td>
+                  <td className="p-3 font-semibold text-emerald-700">{l.yieldPercent}%</td>
+                  <td className="p-3">{l.packsCompleted}</td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

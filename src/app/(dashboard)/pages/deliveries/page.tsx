@@ -1,13 +1,16 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { fetchApi } from "@/lib/apiConfig";
+import { isDateInRange } from "@/lib/formatDate";
+import DateRangeFilter, { defaultStockDateRange } from "@/components/DateRangeFilter";
 import {
   downloadDeliveryNotePdfWithBusiness,
   printDeliveryNoteWithBusiness,
   type DeliveryNoteDoc,
 } from "@/lib/deliveryNoteDocument";
 import toast from "react-hot-toast";
+import { Search } from "lucide-react";
 
 type Delivery = {
   id: string;
@@ -79,9 +82,14 @@ function toNoteDoc(d: Delivery): DeliveryNoteDoc {
 }
 
 export default function DeliveriesPage() {
+  const initialRange = defaultStockDateRange();
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [routes, setRoutes] = useState<string[]>([]);
+  const [fromDate, setFromDate] = useState(initialRange.fromDate);
+  const [toDate, setToDate] = useState(initialRange.toDate);
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [searchTerm, setSearchTerm] = useState("");
   const [form, setForm] = useState({
     orderId: "",
     route: "Jinja Town Centre",
@@ -92,6 +100,30 @@ export default function DeliveriesPage() {
   });
   const [signId, setSignId] = useState<string | null>(null);
   const [signature, setSignature] = useState("");
+
+  const filteredDeliveries = useMemo(() => {
+    return deliveries.filter((d) => {
+      if (!isDateInRange(d.deliveredAt || d.createdAt, fromDate, toDate)) return false;
+      if (statusFilter !== "All" && d.status !== statusFilter) return false;
+      if (searchTerm.trim()) {
+        const q = searchTerm.toLowerCase();
+        const hay = [
+          d.deliveryNumber,
+          d.customerName,
+          d.customerPhone,
+          d.driverName,
+          d.route,
+          d.order?.orderNumber,
+          d.deliveryAddress,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [deliveries, fromDate, toDate, statusFilter, searchTerm]);
 
   const load = async () => {
     try {
@@ -252,8 +284,57 @@ export default function DeliveriesPage() {
         </button>
       </form>
 
+      <div className="border border-gray-300 rounded-xl p-4 bg-white space-y-3">
+        <div className="flex flex-col lg:flex-row lg:items-end gap-3">
+          <DateRangeFilter
+            fromDate={fromDate}
+            toDate={toDate}
+            onFromChange={setFromDate}
+            onToChange={setToDate}
+            onReset={() => {
+              const r = defaultStockDateRange();
+              setFromDate(r.fromDate);
+              setToDate(r.toDate);
+              setStatusFilter("All");
+              setSearchTerm("");
+            }}
+          />
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Status</label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="w-full sm:w-44 border rounded-lg px-3 py-2 bg-white text-sm min-h-10"
+            >
+              <option value="All">All statuses</option>
+              {STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="relative flex-1 min-w-[180px]">
+            <label className="block text-xs font-medium text-gray-600 mb-1">Search</label>
+            <Search className="absolute left-3 bottom-2.5 w-4 h-4 text-gray-400 pointer-events-none" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Delivery #, customer, driver..."
+              className="w-full border rounded-lg pl-9 pr-3 py-2 bg-white text-sm min-h-10"
+            />
+          </div>
+        </div>
+      </div>
+
       <div className="space-y-3">
-        {deliveries.map((d, index) => {
+        {filteredDeliveries.length === 0 ? (
+          <div className="border rounded-xl p-8 bg-white text-center text-gray-500">
+            No deliveries for this filter
+          </div>
+        ) : (
+          filteredDeliveries.map((d, index) => {
           const isDone = d.status === "Delivered";
           const isCancelled = d.status === "Cancelled";
           const locked = isDone || isCancelled;
@@ -339,12 +420,7 @@ export default function DeliveriesPage() {
               </div>
             </div>
           );
-        })}
-        {!deliveries.length && (
-          <p className="text-sm text-gray-500 border rounded-xl p-6 bg-white text-center">
-            No deliveries yet. Create a note above, or mark an order Packed / Out for delivery /
-            Delivered in the Order Pipeline.
-          </p>
+          })
         )}
       </div>
 

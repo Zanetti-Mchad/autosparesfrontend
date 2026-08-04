@@ -2,7 +2,7 @@
 import { formatDisplayDate } from '@/lib/formatDate';
 import React, { useState, useEffect, useCallback } from 'react';
 import { fetchApi } from '@/lib/apiConfig';
-import { CheckCircle, XCircle, DollarSign, Eye, Edit, Search, History } from 'lucide-react';
+import { CheckCircle, XCircle, DollarSign, Eye, Edit, Search, History, Filter } from 'lucide-react';
 import Dialog from '@/components/Dialog';
 
 interface OrderItem {
@@ -57,6 +57,17 @@ const toNumber = (val: any): number => {
 };
 
 const formatOrderDate = (iso: string): string => formatDisplayDate(iso, '');
+
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function monthStartISO() {
+  const d = new Date();
+  return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10);
+}
+
+const PAYMENT_STATUS_OPTIONS = ['All', 'Paid', 'Pending', 'Partial', 'Failed', 'Refunded'] as const;
 
 
 const getStatusColor = (status: string) => {
@@ -266,8 +277,10 @@ const PaymentsPage = () => {
   const [isPaymentHistoryModalOpen, setIsPaymentHistoryModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [fromDate, setFromDate] = useState(monthStartISO());
+  const [toDate, setToDate] = useState(todayISO());
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState<string>('All');
   const [loading, setLoading] = useState(false);
-  const [usingMockData, setUsingMockData] = useState(false);
 
 
   const fetchOrderPayments = async (orderId: string): Promise<Payment[]> => {
@@ -389,74 +402,10 @@ const PaymentsPage = () => {
   };
 
   const fetchOrders = useCallback(async () => {
-    // Mock data for testing when backend fails
-    const mockOrders: Order[] = [
-      {
-        id: 'ORD-001',
-        orderNumber: '001',
-        customer: 'John Mukasa',
-        email: 'john.mukasa@example.com',
-        phone: '0755123456',
-        address: '123 Main Street, Kampala',
-        shippingCity: 'Kampala',
-        shippingDistrict: 'Central',
-        items: [
-            { id: '1', product: 'Fresh Tilapia', category: 'Seafood', size: 'Large', quantity: 2, price: '25000', total: '50,000' },
-            { id: '2', product: 'Organic Avocadoes', category: 'Fruits', size: '5kg', quantity: 1, price: '30000', total: '30,000' }
-          ],
-          subtotal: '80,000',
-          vat: '14,400',
-          total: '94,400',
-        status: 'Completed',
-        paymentStatus: 'Paid',
-        date: '2024-08-03',
-          paidAmount: 50000,
-          balance: 44400,
-          payments: []
-      },
-      {
-        id: 'ORD-002',
-        orderNumber: '002',
-        customer: 'Jane Achen',
-        email: 'jane.achen@example.com',
-        phone: '0777123456',
-        address: '456 Market Street, Kampala',
-        shippingCity: 'Kampala',
-        shippingDistrict: 'Industrial Area',
-        items: [
-            { id: '3', product: 'Craft Coffee Beans', category: 'Beverages', size: '1kg', quantity: 3, price: '45000', total: '135,000' }
-          ],
-          subtotal: '135,000',
-          vat: '24,300',
-          total: '159,300',
-        status: 'Processing',
-        paymentStatus: 'Pending',
-        date: '2024-08-04',
-          paidAmount: 0,
-          balance: 159300,
-          payments: []
-        }
-      ];
-
     try {
       setLoading(true);
-      const apiBase = process.env.NODE_ENV === 'production'
-        ? 'https://backendrdjs-production.up.railway.app/api/v1'
-        : 'http://localhost:4210/api/v1';
-      const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
       const params = new URLSearchParams({ page: '1', limit: '50' });
-      const res = await fetch(`${apiBase}/orders?${params.toString()}`, {
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        }
-      });
-      if (!res.ok) {
-        const errorText = await res.text();
-        console.error('❌ API Error Response:', errorText);
-        throw new Error(`Failed to load orders: ${res.status} - ${errorText}`);
-      }
-        const data = await res.json();
+      const data = await fetchApi(`/orders?${params.toString()}`);
         console.log('Orders API response:', data);
         const items = (data?.data?.items ?? data?.items ?? data) as any[];
         if (Array.isArray(items)) {
@@ -467,7 +416,7 @@ const PaymentsPage = () => {
               ? o.items
               : (Array.isArray(o.orderItems) ? o.orderItems : (Array.isArray(o.products) ? o.products : (Array.isArray(o.order_details) ? o.order_details : (Array.isArray(o.details) ? o.details : []))));
 
-            const mappedItems = rawItems.map((it: any, idx: number) => {
+            const mappedItems = rawItems.map((it: any) => {
               const chosenId = String(it.id ?? it.itemId ?? it.inventoryId ?? Math.random());
               const chosenName = it.productName ?? it.name ?? it.inventory?.name ?? 'Item';
               const chosenCategory = it.category?.name ?? it.categoryName ?? it.inventory?.category?.name ?? it.inventory?.category ?? '';
@@ -495,9 +444,8 @@ const PaymentsPage = () => {
             const total = (o.totals?.total ?? o.total ?? o.amount?.total ?? o.totalAmount ?? null);
             const vat = (o.totals?.vat ?? o.vat ?? o.tax ?? null);
 
-          // Initialize payment fields with defaults
           const totalAmount = toNumber(total);
-          const paidAmount = 0; // Will be calculated from payments
+          const paidAmount = 0;
           const balance = totalAmount - paidAmount;
 
             return {
@@ -520,10 +468,9 @@ const PaymentsPage = () => {
               notes: o.notes ?? undefined,
             paidAmount: paidAmount,
             balance: balance,
-            payments: [] // Will be empty until backend is fixed
+            payments: []
             } as Order;
           });
-          // Fetch payments for each order and update the data
           const ordersWithPayments = await Promise.all(
             mapped.map(async (order) => {
               try {
@@ -545,12 +492,12 @@ const PaymentsPage = () => {
           );
           
           setOrders(ordersWithPayments);
-        setUsingMockData(false);
+        } else {
+          setOrders([]);
         }
       } catch (e) {
-      console.error('❌ Failed to fetch orders from API, using mock data:', e);
-      setOrders(mockOrders);
-      setUsingMockData(true);
+      console.error('❌ Failed to fetch orders from API:', e);
+      setOrders([]);
     } finally {
       setLoading(false);
     }
@@ -560,14 +507,39 @@ const PaymentsPage = () => {
     fetchOrders();
   }, [fetchOrders]);
 
-  const filteredOrders = orders.filter(order => {
-    if (!searchTerm.trim()) return true;
-    const searchLower = searchTerm.toLowerCase();
-    return (
-      order.customer.toLowerCase().includes(searchLower) ||
-      order.id.toLowerCase().includes(searchLower) ||
-      order.items.some(item => item.product.toLowerCase().includes(searchLower))
-    );
+  const filteredOrders = orders.filter((order) => {
+    if (searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase();
+      const matchesSearch =
+        order.customer.toLowerCase().includes(searchLower) ||
+        order.id.toLowerCase().includes(searchLower) ||
+        (order.orderNumber || '').toLowerCase().includes(searchLower) ||
+        (order.phone || '').toLowerCase().includes(searchLower) ||
+        order.items.some((item) => item.product.toLowerCase().includes(searchLower));
+      if (!matchesSearch) return false;
+    }
+
+    if (paymentStatusFilter !== 'All') {
+      const status = String(order.paymentStatus || '').toLowerCase();
+      if (status !== paymentStatusFilter.toLowerCase()) return false;
+    }
+
+    if (fromDate || toDate) {
+      const orderTime = order.date ? new Date(order.date).getTime() : NaN;
+      if (!Number.isFinite(orderTime)) return false;
+      if (fromDate) {
+        const from = new Date(fromDate);
+        from.setHours(0, 0, 0, 0);
+        if (orderTime < from.getTime()) return false;
+      }
+      if (toDate) {
+        const to = new Date(toDate);
+        to.setHours(23, 59, 59, 999);
+        if (orderTime > to.getTime()) return false;
+      }
+    }
+
+    return true;
   });
 
   if (loading && orders.length === 0) {
@@ -585,24 +557,7 @@ const PaymentsPage = () => {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      {usingMockData && (
-        <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-amber-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <p className="text-sm text-amber-800">
-                <strong>Demo Mode:</strong> Backend API is unavailable. Showing mock data for testing payment functionality.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gradient from-green-500 to-emerald-500">Payment Management</h1>
           <p className="text-muted-foreground mt-1">Record payments and track balances.</p>
@@ -612,11 +567,59 @@ const PaymentsPage = () => {
           <input 
             type="text" 
             placeholder="Search orders..." 
-            className="pl-12 pr-4 py-3 w-full md:w-80 form-input"
+            className="pl-12 pr-4 py-3 w-full md:w-80 form-input border border-gray-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
+      </div>
+
+      <div className="mb-8 border border-gray-300 rounded-xl p-4 bg-white flex flex-wrap items-end gap-3">
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">From</label>
+          <input
+            type="date"
+            value={fromDate}
+            onChange={(e) => setFromDate(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-2 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">To</label>
+          <input
+            type="date"
+            value={toDate}
+            onChange={(e) => setToDate(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-2 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Payment status</label>
+          <select
+            value={paymentStatusFilter}
+            onChange={(e) => setPaymentStatusFilter(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-2 bg-white text-sm min-w-[140px] focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+          >
+            {PAYMENT_STATUS_OPTIONS.map((status) => (
+              <option key={status} value={status}>
+                {status}
+              </option>
+            ))}
+          </select>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            setFromDate(monthStartISO());
+            setToDate(todayISO());
+            setPaymentStatusFilter('All');
+            setSearchTerm('');
+          }}
+          className="inline-flex items-center gap-2 border border-gray-300 rounded-lg px-4 py-2 text-sm bg-white hover:bg-gray-50"
+        >
+          <Filter className="w-4 h-4" />
+          Reset filters
+        </button>
       </div>
 
       {/* Desktop Table View */}
